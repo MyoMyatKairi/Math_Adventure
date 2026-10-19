@@ -2,6 +2,7 @@ export * from './schemas/content';
 export * from './schemas/forms';
 export * from './types';
 export * from './math/number';
+export * from './math/words';
 export * from './math/answers';
 export * from './math/rng';
 export * from './scoring/rewards';
