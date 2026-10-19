@@ -1,0 +1,33 @@
+{
+  "name": "math-adventure",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev:web": "pnpm --filter @math-adventure/web dev",
+    "dev:mobile": "pnpm --filter @math-adventure/mobile start",
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "lint": "pnpm -r lint",
+    "test": "pnpm -r test",
+    "test:integration": "vitest run --config tests/vitest.config.ts",
+    "test:e2e": "pnpm --filter @math-adventure/web test:e2e",
+    "content:build": "pnpm --filter @math-adventure/shared content:build",
+    "db:start": "supabase start",
+    "db:reset": "pnpm content:build && supabase db reset",
+    "db:lint": "supabase db lint --level warning",
+    "check:secrets": "node scripts/check-secrets.mjs"
+  },
+  "devDependencies": {
+    "@math-adventure/shared": "workspace:^",
+    "@supabase/supabase-js": "^2.49.0",
+    "@types/node": "^22",
+    "@types/pg": "^8.11.0",
+    "pg": "^8.13.0",
+    "typescript": "~5.8.3",
+    "vitest": "^3.2.4"
+  }
+}

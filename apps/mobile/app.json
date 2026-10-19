@@ -1,0 +1,14 @@
+{
+  "expo": {
+    "name": "Math Adventure",
+    "slug": "math-adventure",
+    "scheme": "mathadventure",
+    "version": "0.1.0",
+    "orientation": "default",
+    "userInterfaceStyle": "light",
+    "ios": { "supportsTablet": true, "bundleIdentifier": "com.mathadventure.app" },
+    "android": { "package": "com.mathadventure.app" },
+    "plugins": ["expo-router", "expo-secure-store"],
+    "experiments": { "typedRoutes": false }
+  }
+}
