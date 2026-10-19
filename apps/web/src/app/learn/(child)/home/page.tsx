@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Calendar, CheckCircle2 } from 'lucide-react';
 import { BadgeMedal, WorldEmblem } from '@/components/brand/icons';
+import { NumberChart } from '@/components/learn/number-chart';
 import { Button } from '@/components/ui/button';
 import { Meter } from '@/components/ui/meter';
 import { Stars } from '@/components/ui/stars';
@@ -104,6 +105,8 @@ export default async function LearnerHome() {
           </dl>
         </section>
       </div>
+
+      <NumberChart defaultRange={o.child.ageGroup === '5-7' ? 10 : 100} />
 
       <div className="grid gap-4 md:grid-cols-2">
         <section aria-labelledby="badges" className="rounded-3xl bg-paper p-5 shadow-[0_4px_0_0_var(--color-line)]">
