@@ -1,6 +1,7 @@
-import { describeVisual, type VisualData } from '@math-adventure/shared';
+import { describeVisual, type Translate, type VisualData } from '@math-adventure/shared';
 import { Text, View } from 'react-native';
 import Svg, { Circle, Ellipse, G, Line, Path, Polygon, Rect, Text as SvgText } from 'react-native-svg';
+import { useLocale } from '../lib/i18n';
 import { colors } from '../theme';
 
 type ObjectKey = Extract<VisualData, { kind: 'objects' }>['object'];
@@ -10,14 +11,15 @@ const fmt = (n: number) => (n < 0 ? `−${Math.abs(n)}` : String(n));
 
 /** Native renderer for the shared visual models. Mirrors apps/web/src/components/visuals/visual.tsx. */
 export function Visual({ visual, small }: { visual: VisualData; small?: boolean }) {
+  const { locale, t } = useLocale();
   return (
-    <View accessible accessibilityRole="image" accessibilityLabel={describeVisual(visual)} style={{ width: '100%', alignItems: 'center' }} testID="visual">
-      <View style={{ width: '100%', maxWidth: small ? 64 : 440 }}>{render(visual)}</View>
+    <View accessible accessibilityRole="image" accessibilityLabel={describeVisual(visual, locale)} style={{ width: '100%', alignItems: 'center' }} testID="visual">
+      <View style={{ width: '100%', maxWidth: small ? 64 : 440 }}>{render(visual, t)}</View>
     </View>
   );
 }
 
-function render(v: VisualData) {
+function render(v: VisualData, t: Translate) {
   switch (v.kind) {
     case 'objects':
       return <Objects object={v.object} groups={v.groups} crossedOut={v.crossedOut ?? 0} />;
@@ -111,8 +113,8 @@ function render(v: VisualData) {
         <Svg viewBox={`0 0 380 ${h + 60}`} width="100%" height={h * 0.8 + 50}>
           <Polygon points={`${ox},${16 + h} ${ox + b},${16 + h} ${ax},16`} fill={colors.plumSoft} stroke={colors.plum} strokeWidth={3} />
           <Line x1={ax} x2={ax} y1={16} y2={16 + h} stroke={INK} strokeWidth={2} strokeDasharray="6 5" />
-          <SvgText x={ox + b / 2} y={16 + h + 28} textAnchor="middle" fontSize={18} fontWeight="700" fill={INK}>{`base ${v.base} ${v.unit}`}</SvgText>
-          <SvgText x={ax + 8} y={16 + h / 2} fontSize={18} fontWeight="700" fill={INK}>{`height ${v.height} ${v.unit}`}</SvgText>
+          <SvgText x={ox + b / 2} y={16 + h + 28} textAnchor="middle" fontSize={18} fontWeight="700" fill={INK}>{t('visual.base', { value: `${v.base} ${v.unit}` })}</SvgText>
+          <SvgText x={ax + 8} y={16 + h / 2} fontSize={18} fontWeight="700" fill={INK}>{t('visual.height', { value: `${v.height} ${v.unit}` })}</SvgText>
         </Svg>
       );
     }

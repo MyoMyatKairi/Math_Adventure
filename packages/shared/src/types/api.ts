@@ -1,6 +1,7 @@
 /** Shapes returned by the database RPCs (see supabase/migrations). */
 import type { LearnerStats } from '../progression';
 import type { AvatarKey } from '../schemas/forms';
+import type { DailyGoalInfo, StreakInfo } from './index';
 
 /** Badge stats plus total XP, as returned by private.learner_stats(). */
 export interface LearnerStatsSummary extends LearnerStats {
@@ -53,6 +54,10 @@ export interface BadgeInfo {
 export interface LearnerOverview {
   child: ChildInfo;
   stats: LearnerStatsSummary;
+  streak: StreakInfo;
+  dailyGoal: DailyGoalInfo;
+  /** `mistakes`: questions last answered wrong on the first try. `available`: a practice round can start. */
+  practice: { mistakes: number; available: boolean };
   worlds: WorldInfo[];
   daily: { lessonId: string; date: string; title: string; completed: boolean; bonusXp: number } | null;
   badges: BadgeInfo[];

@@ -13,10 +13,11 @@ All schema changes are migrations in `supabase/migrations`. Curriculum content i
 | `badges` | Badge definitions and `unlock_rule` | Public read of active badges; admin write |
 | `child_profiles` | Learner nickname, avatar, age group, level | Parent: select/insert/update/delete own |
 | `lesson_progress` | One row per child × lesson | Parent: read own children |
-| `quiz_attempts` | One row per lesson attempt; completed rows are immutable summaries | Parent: read own children |
+| `quiz_attempts` | One row per lesson attempt or practice round (`kind` = `lesson`/`review`; reviews have no `lesson_id`); completed rows are immutable summaries | Parent: read own children |
 | `question_responses` | Every submitted answer (≤ 2 per question per attempt) | Parent: read own children |
 | `reward_events` | XP/star ledger with unique idempotency key per child | Parent: read own children |
 | `child_badges` | Earned badges, unique per child × badge | Parent: read own children |
+| `child_streaks` | Current/longest streak, last active UTC day, streak freezes (0–2); written only by `complete_lesson` | Parent: read own children |
 
 Learning records have **no** insert/update grants for clients. Only the `SECURITY DEFINER` functions write them.
 

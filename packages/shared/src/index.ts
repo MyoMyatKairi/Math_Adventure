@@ -7,6 +7,8 @@ export * from './math/answers';
 export * from './math/rng';
 export * from './scoring/rewards';
 export * from './progression';
+export * from './progression/streak';
 export * from './content/describe';
 export * from './types/api';
 export * from './errors';
+export * from './i18n';

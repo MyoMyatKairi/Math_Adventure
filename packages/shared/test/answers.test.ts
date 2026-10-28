@@ -136,3 +136,20 @@ describe('formatRational', () => {
     [{ num: 10n, den: 5n }, '2'],
   ])('%o -> %s', (r, s) => expect(formatRational(r)).toBe(s));
 });
+
+describe('Myanmar and Thai digits', () => {
+  it('reads native digits as 0–9 in every notation', () => {
+    expect(checkAnswer({ type: 'numeric', answer: { value: '12' } }, '၁၂').status).toBe('correct');
+    expect(checkAnswer({ type: 'numeric', answer: { value: '12' } }, '๑๒').status).toBe('correct');
+    expect(checkAnswer({ type: 'numeric', answer: { value: '-3' } }, '−၃').status).toBe('correct');
+    expect(checkAnswer({ type: 'numeric', answer: { value: '0.5', format: 'decimal' } }, '๐.๕').status).toBe('correct');
+    expect(checkAnswer({ type: 'numeric', answer: { value: '3/4', format: 'fraction' } }, '၃/၄').status).toBe('correct');
+    expect(checkAnswer({ type: 'numeric', answer: { value: '3/2' } }, '๑ ๑/๒').status).toBe('correct');
+    expect(checkAnswer({ type: 'numeric', answer: { value: '1000' } }, '၁,၀၀၀').status).toBe('correct');
+    expect(checkAnswer({ type: 'numeric', answer: { value: '12' } }, '၁๓').status).toBe('incorrect');
+  });
+  it('keeps format rules for native digits', () => {
+    expect(checkAnswer({ type: 'numeric', answer: { value: '1/2', format: 'simplest_fraction' } }, '၂/၄')).toEqual({ status: 'invalid', reason: 'wrong_format' });
+    expect(parseLearnerNumber('၁/၀')).toEqual({ ok: false, error: 'divide_by_zero' });
+  });
+});

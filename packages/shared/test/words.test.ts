@@ -32,3 +32,27 @@ describe('placeValue', () => {
     expect(placeValue(100)).toEqual({ hundreds: 1, tens: 0, ones: 0 });
   });
 });
+
+describe('numberToWords in Burmese and Thai', () => {
+  it('names Burmese numbers with the creaky tone when more follows', () => {
+    expect(numberToWords(0, 'my')).toBe('သုည');
+    expect(numberToWords(10, 'my')).toBe('တစ်ဆယ်');
+    expect(numberToWords(15, 'my')).toBe('ဆယ့်ငါး');
+    expect(numberToWords(20, 'my')).toBe('နှစ်ဆယ်');
+    expect(numberToWords(25, 'my')).toBe('နှစ်ဆယ့်ငါး');
+    expect(numberToWords(100, 'my')).toBe('တစ်ရာ');
+    expect(numberToWords(105, 'my')).toBe('တစ်ရာ့ငါး');
+    expect(numberToWords(110, 'my')).toBe('တစ်ရာ့တစ်ဆယ်');
+    expect(numberToWords(1000, 'my')).toBe('တစ်ထောင်');
+  });
+  it('names Thai numbers with เอ็ด and ยี่สิบ', () => {
+    expect(numberToWords(0, 'th')).toBe('ศูนย์');
+    expect(numberToWords(10, 'th')).toBe('สิบ');
+    expect(numberToWords(11, 'th')).toBe('สิบเอ็ด');
+    expect(numberToWords(21, 'th')).toBe('ยี่สิบเอ็ด');
+    expect(numberToWords(45, 'th')).toBe('สี่สิบห้า');
+    expect(numberToWords(101, 'th')).toBe('หนึ่งร้อยหนึ่ง');
+    expect(numberToWords(111, 'th')).toBe('หนึ่งร้อยสิบเอ็ด');
+    expect(numberToWords(1000, 'th')).toBe('หนึ่งพัน');
+  });
+});

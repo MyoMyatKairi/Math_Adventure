@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(say -v '?')",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm --filter @math-adventure/web lint)",
+      "Bash(grep -E '^\\(tsx|ts-node|vite-node\\)$')",
+      "Bash(xargs -I{} sh -c 'echo \"== {}\"; cat {}')",
+      "Bash(pnpm audio:numbers -- --manifest-only)",
+      "Bash(pnpm -r --filter @math-adventure/shared --filter ./apps/web exec tsc --noEmit)",
+      "Bash(pnpm --filter @math-adventure/shared --filter @math-adventure/web typecheck)",
+      "Bash(sed -i '' 's/\\(start\\({}\\).data as object\\)/\\(\\(start\\({}\\) as { data: object }\\).data\\)/; s/\\(done\\({}\\).data as object\\)/\\(\\(done\\({}\\) as { data: object }\\).data\\)/' __tests__/lesson-player.test.tsx)",
+      "Bash(pnpm --filter @math-adventure/web test)",
+      "Bash(pnpm --filter @math-adventure/web typecheck)",
+      "Bash(pnpm --filter @math-adventure/mobile lint)"
+    ]
+  }
+}

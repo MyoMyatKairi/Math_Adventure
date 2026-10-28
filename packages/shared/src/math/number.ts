@@ -2,7 +2,8 @@
  * Safe parsing of learner-typed numbers into exact rationals.
  *
  * Accepted notations: integers ("12", "-3", "1,000"), decimals ("0.5", ".5", "-2.75"),
- * fractions ("3/4", "-7/2", "3 / 4") and mixed numbers ("1 1/2").
+ * fractions ("3/4", "-7/2", "3 / 4") and mixed numbers ("1 1/2"). Myanmar and Thai
+ * digits ("၁၂", "๑๒") are read as 0–9.
  * Nothing is ever evaluated as code. The server mirrors these rules in
  * `public.ma_parse_number` (see supabase/migrations) — keep them in sync.
  */
@@ -67,9 +68,19 @@ export function compareRationals(a: Rational, b: Rational): -1 | 0 | 1 {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
+/** Myanmar (၀–၉) and Thai (๐–๙) digits, mapped to 0–9. Mirrored in private.normalize_input. */
+const NATIVE_DIGITS = /[၀-၉๐-๙]/g;
+
+export function toAsciiDigits(s: string): string {
+  return s.replace(NATIVE_DIGITS, (c) => {
+    const code = c.charCodeAt(0);
+    return String(code >= 0x1040 ? code - 0x1040 : code - 0x0e50);
+  });
+}
+
 /** Cleans up typing quirks without changing meaning. */
 export function normalizeInput(raw: string): string {
-  return raw
+  return toAsciiDigits(raw)
     .replace(/[−‒–—﹣－]/g, '-')
     .replace(/＋/g, '+')
     .trim()

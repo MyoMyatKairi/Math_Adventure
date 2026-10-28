@@ -1,7 +1,9 @@
+import { TRANSLATED_LOCALES, type TranslatedLocale } from '../i18n/locales';
 import type { QuestionDraft, SectionContent, VisualData } from '../schemas/content';
-import { GENERATORS, type GeneratedQuestion, type GeneratorName, type GeneratorParams } from '../math/generators';
+import { GENERATORS, type GeneratedQuestion, type GeneratorName, type GeneratorParams, type QuestionText } from '../math/generators';
 import { createRng, hashSeed } from '../math/rng';
-import { validateQuestion } from './validate';
+import type { ContentTranslation, LessonText } from './translation';
+import { validateQuestion, validateTranslations } from './validate';
 
 // ---------------------------------------------------------------------------
 // Authoring model
@@ -58,9 +60,13 @@ export function literal(q: GeneratedQuestion, difficulty?: 1 | 2 | 3): QuestionS
 // Built (seedable) model
 // ---------------------------------------------------------------------------
 
+/** Per-language text for a content row, stored in its `translations` jsonb column. */
+export type Translations<T> = Record<TranslatedLocale, T>;
+
 export interface BuiltQuestion extends QuestionDraft {
   id: string;
   displayOrder: number;
+  translations: Translations<QuestionText>;
 }
 
 export interface BuiltSection {
@@ -69,6 +75,7 @@ export interface BuiltSection {
   title: string;
   content: SectionContent;
   displayOrder: number;
+  translations: Translations<{ title: string; content: SectionContent }>;
 }
 
 export interface BuiltLesson {
@@ -84,11 +91,14 @@ export interface BuiltLesson {
   displayOrder: number;
   sections: BuiltSection[];
   questions: BuiltQuestion[];
+  translations: Translations<{ title: string; description: string; learning_objective: string }>;
 }
 
+type TitleText = { title: string; description: string };
+
 export interface BuiltCurriculum {
-  worlds: { id: string; key: string; levelId: string; title: string; description: string; themeKey: string; displayOrder: number }[];
-  topics: { id: string; key: string; levelId: string; title: string; description: string; displayOrder: number }[];
+  worlds: { id: string; key: string; levelId: string; title: string; description: string; themeKey: string; displayOrder: number; translations: Translations<TitleText> }[];
+  topics: { id: string; key: string; levelId: string; title: string; description: string; displayOrder: number; translations: Translations<TitleText> }[];
   lessons: BuiltLesson[];
 }
 
@@ -104,7 +114,17 @@ export function contentId(key: string): string {
 
 const MAX_REGENERATE = 25;
 
-function generate(spec: QuestionSpec, lesson: LessonDef, index: number, seen: Set<string>): QuestionDraft {
+const ENGLISH_SECTIONS: ContentTranslation['sections'] = {
+  learn: "Let's learn",
+  example: 'Worked example',
+  practice: 'Your turn',
+  remember: 'Remember',
+  practiceText: (n) => `Try ${n} questions. You get two tries at each one.`,
+};
+
+type Draft = QuestionDraft & Pick<GeneratedQuestion, 'i18n'>;
+
+function generate(spec: QuestionSpec, lesson: LessonDef, index: number, seen: Set<string>): Draft {
   if ('literal' in spec) {
     return { ...spec.literal, difficulty: spec.difficulty ?? lesson.difficulty, points: 10 };
   }
@@ -121,7 +141,29 @@ function generate(spec: QuestionSpec, lesson: LessonDef, index: number, seen: Se
   throw new Error(`Could not generate a unique question ${index} for ${lesson.key}`);
 }
 
-export function buildCurriculum(levels: LevelDef[]): BuiltCurriculum {
+/** Looks up a key in every translation, failing the build if any language is missing it. */
+function each<T>(translations: Translations<ContentTranslation>, pick: (t: ContentTranslation) => T | undefined, what: string): Translations<T> {
+  return Object.fromEntries(
+    TRANSLATED_LOCALES.map((l) => {
+      const v = pick(translations[l]);
+      if (v === undefined) throw new Error(`Missing ${l} translation for ${what}`);
+      return [l, v];
+    }),
+  ) as Translations<T>;
+}
+
+/** Translated lesson text, checked to have the same number of steps and summary points as the English. */
+function lessonText(translations: Translations<ContentTranslation>, l: LessonDef): Translations<LessonText> {
+  const text = each(translations, (t) => t.lessons[l.key], `lesson ${l.key}`);
+  for (const loc of TRANSLATED_LOCALES) {
+    const t = text[loc];
+    if (t.example.steps.length !== l.example.steps.length) throw new Error(`${loc} ${l.key}: example has ${t.example.steps.length} steps, English has ${l.example.steps.length}`);
+    if (t.summary.length !== l.summary.length) throw new Error(`${loc} ${l.key}: summary has ${t.summary.length} points, English has ${l.summary.length}`);
+  }
+  return text;
+}
+
+export function buildCurriculum(levels: LevelDef[], translations: Translations<ContentTranslation>): BuiltCurriculum {
   const out: BuiltCurriculum = { worlds: [], topics: [], lessons: [] };
   const usedKeys = new Set<string>();
   const claim = (key: string) => {
@@ -135,32 +177,45 @@ export function buildCurriculum(levels: LevelDef[]): BuiltCurriculum {
     level.worlds.forEach((w, i) => {
       const id = claim(`world:${w.key}`);
       worldIds.set(w.key, id);
-      out.worlds.push({ id, key: w.key, levelId: level.levelId, title: w.title, description: w.description, themeKey: w.themeKey, displayOrder: i + 1 });
+      out.worlds.push({
+        id, key: w.key, levelId: level.levelId, title: w.title, description: w.description, themeKey: w.themeKey, displayOrder: i + 1,
+        translations: each(translations, (t) => t.worlds[w.key], `world ${w.key}`),
+      });
     });
     const orderInWorld = new Map<string, number>();
     level.topics.forEach((t, ti) => {
       const topicId = claim(`topic:${t.key}`);
-      out.topics.push({ id: topicId, key: t.key, levelId: level.levelId, title: t.title, description: t.description, displayOrder: ti + 1 });
+      out.topics.push({
+        id: topicId, key: t.key, levelId: level.levelId, title: t.title, description: t.description, displayOrder: ti + 1,
+        translations: each(translations, (tr) => tr.topics[t.key], `topic ${t.key}`),
+      });
       for (const l of t.lessons) {
         const worldId = worldIds.get(l.world);
         if (!worldId) throw new Error(`Lesson ${l.key} references unknown world ${l.world}`);
         const displayOrder = (orderInWorld.get(l.world) ?? 0) + 1;
         orderInWorld.set(l.world, displayOrder);
         const lessonId = claim(`lesson:${l.key}`);
-        const sectionContents: { title: string; content: SectionContent }[] = [
-          { title: "Let's learn", content: { kind: 'introduction', text: l.intro, ...(l.introVisual ? { visual: l.introVisual } : {}) } },
-          { title: 'Worked example', content: { kind: 'worked_example', ...l.example } },
-          { title: 'Your turn', content: { kind: 'practice', text: `Try ${l.questions.length} questions. You get two tries at each one.` } },
-          { title: 'Remember', content: { kind: 'summary', points: l.summary } },
-        ];
+        const text = lessonText(translations, l);
+        const sectionsFor = (s: ContentTranslation['sections'], t: Pick<LessonText, 'intro' | 'example' | 'summary'>) =>
+          [
+            { title: s.learn, content: { kind: 'introduction', text: t.intro, ...(l.introVisual ? { visual: l.introVisual } : {}) } },
+            { title: s.example, content: { kind: 'worked_example', ...t.example, ...(l.example.visual ? { visual: l.example.visual } : {}) } },
+            { title: s.practice, content: { kind: 'practice', text: s.practiceText(l.questions.length) } },
+            { title: s.remember, content: { kind: 'summary', points: t.summary } },
+          ] satisfies { title: string; content: SectionContent }[];
+        const sectionContents = sectionsFor(ENGLISH_SECTIONS, l);
+        const translatedSections = Object.fromEntries(
+          TRANSLATED_LOCALES.map((loc) => [loc, sectionsFor(translations[loc].sections, text[loc])]),
+        ) as Translations<{ title: string; content: SectionContent }[]>;
         const seen = new Set<string>();
         const questions = l.questions.map((spec, qi) => {
-          const draft = generate(spec, l, qi, seen);
-          const problems = validateQuestion(draft);
+          const { i18n, ...draft } = generate(spec, l, qi, seen);
+          const qText = 'literal' in spec ? each(translations, (t) => t.lessons[l.key]?.literals?.[qi], `question ${qi} of ${l.key}`) : i18n;
+          const problems = [...validateQuestion(draft), ...validateTranslations(draft, qText)];
           if (problems.length > 0) {
-            throw new Error(`Invalid question ${qi} in ${l.key}: ${problems.join('; ')}\n${JSON.stringify(draft, null, 2)}`);
+            throw new Error(`Invalid question ${qi} in ${l.key}: ${problems.join('; ')}\n${JSON.stringify({ ...draft, i18n: qText }, null, 2)}`);
           }
-          return { ...draft, id: claim(`question:${l.key}:${qi}`), displayOrder: qi + 1 };
+          return { ...draft, id: claim(`question:${l.key}:${qi}`), displayOrder: qi + 1, translations: qText as Translations<QuestionText> };
         });
         out.lessons.push({
           id: lessonId,
@@ -179,8 +234,12 @@ export function buildCurriculum(levels: LevelDef[]): BuiltCurriculum {
             title: s.title,
             content: s.content,
             displayOrder: si + 1,
+            translations: Object.fromEntries(TRANSLATED_LOCALES.map((loc) => [loc, translatedSections[loc][si]!])) as BuiltSection['translations'],
           })),
           questions,
+          translations: Object.fromEntries(
+            TRANSLATED_LOCALES.map((loc) => [loc, { title: text[loc].title, description: text[loc].description, learning_objective: text[loc].objective }]),
+          ) as BuiltLesson['translations'],
         });
       }
     });

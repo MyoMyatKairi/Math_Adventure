@@ -8,6 +8,9 @@ jest.mock('../src/lib/supabase', () => require('../test-utils/supabase-mock'));
 const overview = {
   child: { id: 'kid-1', displayName: 'Robin', avatarKey: 'owl', ageGroup: '5-7', learningLevelId: 'lvl', levelName: 'Level 1' },
   stats: { lessonsCompleted: 0, totalStars: 0, totalXp: 0, perfectLessons: 0, dailyChallenges: 0, worldsCompleted: 0 },
+  streak: { current: 0, longest: 0, freezes: 0, practicedToday: false, week: Array.from({ length: 7 }, (_, i) => ({ date: `2026-10-2${i + 2}`, active: false })) },
+  dailyGoal: { target: 2, done: 0 },
+  practice: { mistakes: 0, available: false },
   worlds: [
     {
       id: 'w1', title: 'Number Forest', description: '', themeKey: 'forest', displayOrder: 1, unlocked: true, lessonCount: 2, completedCount: 0, lessonsToUnlockNext: 1,

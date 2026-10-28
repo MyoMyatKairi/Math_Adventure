@@ -1,8 +1,8 @@
 # Math Adventure
 
-Game-based maths practice for children aged 5–12, on the web and on mobile. Parents hold the account and add children as learner profiles. Children work through short lessons on an adventure map, get two tries and a hint on every question, and collect stars, XP and badges. Parents see accuracy by topic, recent lessons and a weekly summary.
+Game-based maths practice for children aged 5–12, on the web and on mobile. Parents hold the account and add children as learner profiles. Children work through short lessons along a winding adventure path, get two tries and a hint on every question, and collect stars, XP and badges. A daily streak (with streak freezes), a daily goal and a practice mode for earlier mistakes bring them back each day. Parents see accuracy by topic, recent lessons and a weekly summary.
 
-Free MVP. English. No ads, chat, leaderboards, paid features or AI services.
+Free MVP. English, Burmese (မြန်မာ) and Thai (ไทย). No ads, chat, leaderboards, paid features or AI services.
 
 ## What's included
 
@@ -58,10 +58,12 @@ scripts           Secret scan, no-eval lint
 ## Known limitations
 
 - Mobile has been verified with unit/component tests and a Hermes bundle build, not on a device or simulator.
-- Mobile uses simpler avatars (initials in the avatar's colours) and a list-style map; the illustrated map and avatars are web-only.
+- Mobile uses simpler avatars (initials in the avatar's colours) and plain world banners; the illustrated world emblems and avatars are web-only.
 - Password resets are completed on the web app, including when requested from mobile.
 - The mobile parent unlock is in memory and resets on app restart (by design, but it means re-entering the password more often).
-- Daily challenges and the weekly chart use UTC days.
+- Daily challenges, streaks, the daily goal and the weekly chart use UTC days.
+- Lesson sounds are web-only (synthesised, off until turned on); mobile has no sound yet.
+- The parent report's weekly "lessons completed" also counts practice rounds.
 - No admin UI: content is managed in TypeScript and loaded by the seed; admins can edit through SQL/RLS.
 - No offline mode.
 - Not legally reviewed for COPPA or other child-privacy laws; see [security](docs/security.md#before-public-launch-not-done-needs-legal-review).

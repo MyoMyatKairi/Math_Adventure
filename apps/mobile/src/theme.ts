@@ -21,7 +21,27 @@ export const colors = {
   skySoft: '#e3eefc',
 } as const;
 
-export const radius = { sm: 12, md: 18, lg: 24, xl: 32 } as const;
+/**
+ * Liquid Glass surfaces. On iOS 26+ real glass (expo-glass-effect) is used and
+ * these are only the fallback for Android / older iOS: frosted white with a
+ * bright rim so cards still read as glass over the colourful backdrop.
+ */
+export const glass = {
+  fill: 'rgba(255,255,255,0.62)',
+  fillStrong: 'rgba(255,255,255,0.82)',
+  rim: 'rgba(255,255,255,0.95)',
+  shadow: '#1c2541',
+} as const;
+
+/** `#rrggbb` + alpha (0..1) → `#rrggbbaa`. */
+export function withAlpha(hex: string, alpha: number) {
+  const a = Math.round(Math.max(0, Math.min(1, alpha)) * 255)
+    .toString(16)
+    .padStart(2, '0');
+  return `${hex.slice(0, 7)}${a}`;
+}
+
+export const radius ={ sm: 12, md: 18, lg: 24, xl: 32 } as const;
 export const space = (n: number) => n * 4;
 /** Minimum touch target (Apple HIG 44pt; we go bigger for young learners). */
 export const TOUCH = 52;

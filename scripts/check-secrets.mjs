@@ -10,6 +10,7 @@ const rules = [
   { name: 'SUPABASE_SERVICE_ROLE_KEY value', re: /SUPABASE_SERVICE_ROLE_KEY\s*=\s*\S{20,}/ },
   { name: 'private key', re: /-----BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY-----/ },
   { name: 'AWS key', re: /AKIA[0-9A-Z]{16}/ },
+  { name: 'AZURE_SPEECH_KEY value', re: /AZURE_SPEECH_KEY\s*=\s*[A-Za-z0-9]{32,}/ },
 ];
 const hits = [];
 for (const f of files) {

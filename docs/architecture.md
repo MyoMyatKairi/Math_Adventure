@@ -51,6 +51,17 @@ Web and mobile UI components are separate. They share logic and types only.
 
 **Extensible question types.** Each client has an `ANSWER_INPUTS` registry keyed by question type. Adding a type means: a schema entry, a checker branch in `answers.ts` and `private.check_answer`, and one registry entry per client. The lesson players don't change.
 
+## Languages
+
+English, Burmese (`my`) and Thai (`th`). The choice is app-wide: a cookie (`ma_locale`) on web, falling back to the browser's Accept-Language; AsyncStorage on mobile, falling back to the device language. A switcher sits in every header.
+
+- **Interface text** lives in `packages/shared/src/i18n/messages/{en,my,th}.ts`. `my` and `th` are typed against the English keys, so a missing key fails `tsc`; `test/i18n.test.ts` checks placeholders match. Zod form schemas return message keys, translated by `fieldErrors(error, locale)`.
+- **Curriculum text** for lessons, worlds and topics is in `packages/shared/src/content/translations/{my,th}.ts`, keyed by content key. Generators write all three languages from the same numbers. `pnpm content:build` fails if a translation is missing, has the wrong number of steps, or its explanation no longer states the answer (the same `validateQuestion` rules run on every language).
+- **Database**: content tables have a `translations` jsonb column (`{ "my": {...}, "th": {...} }`). The learner RPCs take `p_locale` and fall back to English. Answer keys and option ids are shared, so scoring does not depend on language.
+- **Answers** may be typed with Myanmar (၀–၉) or Thai (๐–๙) digits; both `normalizeInput` and `private.normalize_input` map them to 0–9.
+
+The Burmese and Thai text is a draft and needs review by native speakers before release.
+
 ## Lesson flow
 
 1. Client reads public lesson sections (introduction, worked example) via RLS-protected selects.
@@ -66,7 +77,15 @@ Web and mobile UI components are separate. They share logic and types only.
 | Each star reached (1–3) | 5 | 1 | `lesson:<id>:star:<n>` |
 | Daily challenge (once per UTC day) | 15 | 0 | `daily:<yyyy-mm-dd>` |
 
-Score: first-try correct = full points, second-try = half, else 0. Stars: ≥ 90% → 3, ≥ 70% → 2, otherwise 1. Replays can only earn stars not yet earned. Nothing is ever taken away; there are no streaks.
+Score: first-try correct = full points, second-try = half, else 0. Stars: ≥ 90% → 3, ≥ 70% → 2, otherwise 1. Replays can only earn stars not yet earned. XP and stars are never taken away.
+
+## Streaks, daily goal and practice
+
+Rules live in `packages/shared/src/progression/streak.ts` and `supabase/migrations/20261028000002_streaks_goals_practice.sql`.
+
+- **Streak**: consecutive UTC days with at least one finished session (lesson or practice round). Every 7th day in a row earns a streak freeze (max 2); each freeze covers one missed day automatically. If there aren't enough freezes the streak shows 0 and restarts at 1 with the next session. The longest streak is kept.
+- **Daily goal**: finish 2 sessions (lessons or practice rounds) in a UTC day. Counted in sessions, not XP, so the goal is reachable without farming XP.
+- **Practice** (`start_review`): up to 5 questions in the learner's open worlds whose most recent first try was wrong, newest first, topped up with random questions from finished lessons. Getting a question right first time in any later session takes it off the list. Practice rounds count for the streak and daily goal but award no XP, stars or badges, and don't touch `lesson_progress`.
 
 World *n* opens when every earlier world in the level has at least half its lessons completed.
 
