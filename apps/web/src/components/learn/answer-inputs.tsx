@@ -3,6 +3,7 @@
 import type { PublicQuestion, QuestionType } from '@math-adventure/shared';
 import { Delete } from 'lucide-react';
 import type { ComponentType } from 'react';
+import { useT } from '@/components/i18n';
 import { Visual } from '@/components/visuals/visual';
 import { cn } from '@/lib/utils';
 
@@ -31,10 +32,11 @@ export const ANSWER_INPUTS: Record<QuestionType, ComponentType<AnswerInputProps>
 };
 
 function ChoiceInput({ question, value, onChange, disabled }: AnswerInputProps) {
+  const t = useT();
   const options = question.options ?? [];
   const numeric = options.every((o) => /^-?\d+$/.test(o.label));
   return (
-    <div role="radiogroup" aria-label="Answers" className={cn('grid gap-3', numeric ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2')}>
+    <div role="radiogroup" aria-label={t('input.answers')} className={cn('grid gap-3', numeric ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-1 sm:grid-cols-2')}>
       {options.map((o) => {
         const selected = value === o.id;
         return (
@@ -61,21 +63,22 @@ function ChoiceInput({ question, value, onChange, disabled }: AnswerInputProps) 
 }
 
 const SYMBOLS = [
-  { value: '<', name: 'is less than' },
-  { value: '=', name: 'is equal to' },
-  { value: '>', name: 'is greater than' },
-];
+  { value: '<', name: 'input.lessThan' },
+  { value: '=', name: 'input.equalTo' },
+  { value: '>', name: 'input.greaterThan' },
+] as const;
 
 function CompareInput({ value, onChange, disabled }: AnswerInputProps) {
+  const t = useT();
   return (
-    <div role="radiogroup" aria-label="Comparison sign" className="flex justify-center gap-3">
+    <div role="radiogroup" aria-label={t('input.compareSign')} className="flex justify-center gap-3">
       {SYMBOLS.map((s) => (
         <button
           key={s.value}
           type="button"
           role="radio"
           aria-checked={value === s.value}
-          aria-label={s.name}
+          aria-label={t(s.name)}
           disabled={disabled}
           onClick={() => onChange(s.value)}
           className={cn(
@@ -91,6 +94,7 @@ function CompareInput({ value, onChange, disabled }: AnswerInputProps) {
 }
 
 function NumberInput({ question, value, onChange, onSubmit, disabled, ageGroup }: AnswerInputProps) {
+  const t = useT();
   const format = question.answerFormat;
   const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
   const extras =
@@ -100,11 +104,11 @@ function NumberInput({ question, value, onChange, onSubmit, disabled, ageGroup }
     onChange(value + k);
   };
   const placeholder =
-    format === 'decimal' ? 'e.g. 0.5' : format === 'fraction' || format === 'simplest_fraction' ? 'e.g. 3/4' : 'Your answer';
+    format === 'decimal' ? t('input.placeholderDecimal') : format === 'fraction' || format === 'simplest_fraction' ? t('input.placeholderFraction') : t('input.yourAnswer');
   return (
     <div className="mx-auto w-full max-w-xs">
       <label htmlFor="answer" className="sr-only">
-        Your answer
+        {t('input.yourAnswer')}
       </label>
       <input
         id="answer"
@@ -124,7 +128,7 @@ function NumberInput({ question, value, onChange, onSubmit, disabled, ageGroup }
         placeholder={placeholder}
         className="h-16 w-full rounded-2xl border-[3px] border-line bg-paper text-center font-display text-4xl font-extrabold tabular placeholder:text-xl placeholder:font-semibold placeholder:text-ink-soft/50 focus:border-plum focus:outline-none"
       />
-      <div className="mt-3 grid grid-cols-3 gap-2" aria-label="Number pad">
+      <div className="mt-3 grid grid-cols-3 gap-2" aria-label={t('input.numberPad')}>
         {[...keys, ...extras].map((k) => (
           <button
             key={k}
@@ -135,7 +139,7 @@ function NumberInput({ question, value, onChange, onSubmit, disabled, ageGroup }
               'h-14 rounded-2xl bg-paper font-display text-2xl font-extrabold shadow-[0_3px_0_0_var(--color-line)] active:translate-y-[2px] active:shadow-none disabled:opacity-50',
               ageGroup === '5-7' && k === '0' && 'col-start-2',
             )}
-            aria-label={k === '-' ? 'minus' : k === '.' ? 'decimal point' : k === '/' ? 'fraction bar' : k}
+            aria-label={k === '-' ? t('input.minus') : k === '.' ? t('input.decimalPoint') : k === '/' ? t('input.fractionBar') : k}
           >
             {k === '-' ? '−' : k}
           </button>
@@ -145,7 +149,7 @@ function NumberInput({ question, value, onChange, onSubmit, disabled, ageGroup }
           disabled={disabled || value.length === 0}
           onClick={() => onChange(value.slice(0, -1))}
           className="col-start-3 flex h-14 items-center justify-center rounded-2xl bg-chalk text-ink-soft disabled:opacity-40"
-          aria-label="Delete last character"
+          aria-label={t('input.delete')}
         >
           <Delete className="h-6 w-6" aria-hidden="true" />
         </button>

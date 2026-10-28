@@ -1,4 +1,7 @@
+'use client';
+
 import type { TopicSummary } from '@math-adventure/shared';
+import { useLocale, useT } from '@/components/i18n';
 import { cn, formatDate } from '@/lib/utils';
 
 /**
@@ -7,20 +10,22 @@ import { cn, formatDate } from '@/lib/utils';
  * tooltip per column, and a visually hidden table for screen readers.
  */
 export function WeeklyChart({ days }: { days: { date: string; lessonsCompleted: number; questionsAnswered: number }[] }) {
+  const t = useT();
+  const locale = useLocale();
   const max = Math.max(1, ...days.map((d) => d.lessonsCompleted));
   const total = days.reduce((s, d) => s + d.lessonsCompleted, 0);
   return (
     <figure>
-      <figcaption className="sr-only">Lessons completed per day over the last 7 days</figcaption>
+      <figcaption className="sr-only">{t('charts.weekCaption')}</figcaption>
       <div className="flex h-40 items-end gap-2" aria-hidden="true">
         {days.map((d) => {
-          const label = formatDate(`${d.date}T12:00:00Z`, { weekday: 'short' });
+          const label = formatDate(`${d.date}T12:00:00Z`, locale, { weekday: 'short' });
           const h = d.lessonsCompleted === 0 ? 0 : Math.max(8, (d.lessonsCompleted / max) * 120);
           return (
             <div
               key={d.date}
               className="group flex flex-1 flex-col items-center justify-end gap-1"
-              title={`${label}: ${d.lessonsCompleted} lessons, ${d.questionsAnswered} questions`}
+              title={t('charts.dayTitle', { day: label, lessons: d.lessonsCompleted, questions: d.questionsAnswered })}
             >
               {d.lessonsCompleted > 0 && <span className="text-sm font-bold tabular text-ink">{d.lessonsCompleted}</span>}
               <div
@@ -33,19 +38,19 @@ export function WeeklyChart({ days }: { days: { date: string; lessonsCompleted: 
           );
         })}
       </div>
-      {total === 0 && <p className="mt-2 text-sm text-ink-soft">No lessons finished in the last 7 days.</p>}
+      {total === 0 && <p className="mt-2 text-sm text-ink-soft">{t('charts.noLessons')}</p>}
       <table className="sr-only">
         <thead>
           <tr>
-            <th>Day</th>
-            <th>Lessons completed</th>
-            <th>Questions answered</th>
+            <th>{t('charts.day')}</th>
+            <th>{t('charts.lessons')}</th>
+            <th>{t('charts.questions')}</th>
           </tr>
         </thead>
         <tbody>
           {days.map((d) => (
             <tr key={d.date}>
-              <td>{formatDate(`${d.date}T12:00:00Z`, { weekday: 'long', day: 'numeric', month: 'long' })}</td>
+              <td>{formatDate(`${d.date}T12:00:00Z`, locale, { weekday: 'long', day: 'numeric', month: 'long' })}</td>
               <td>{d.lessonsCompleted}</td>
               <td>{d.questionsAnswered}</td>
             </tr>
@@ -56,38 +61,42 @@ export function WeeklyChart({ days }: { days: { date: string; lessonsCompleted: 
   );
 }
 
-const STATUS_STYLE: Record<TopicSummary['status'], { chip: string; label: string }> = {
-  not_started: { chip: 'bg-chalk text-ink-soft', label: 'Not started' },
-  needs_practice: { chip: 'bg-ember-soft text-ember-dark', label: 'Practise again' },
-  growing: { chip: 'bg-sky-soft text-ink', label: 'Growing' },
-  confident: { chip: 'bg-lagoon-soft text-lagoon-dark', label: 'Confident' },
+const STATUS_CHIP: Record<TopicSummary['status'], string> = {
+  not_started: 'bg-chalk text-ink-soft',
+  needs_practice: 'bg-ember-soft text-ember-dark',
+  growing: 'bg-sky-soft text-ink',
+  confident: 'bg-lagoon-soft text-lagoon-dark',
 };
 
 /** Per-topic first-try accuracy as horizontal bars; status is always a word, never colour alone. */
 export function TopicBars({ topics }: { topics: TopicSummary[] }) {
+  const t = useT();
   return (
     <ul className="space-y-4">
-      {topics.map((t) => {
-        const style = STATUS_STYLE[t.status];
+      {topics.map((topic) => {
         return (
-          <li key={t.topicId}>
+          <li key={topic.topicId}>
             <div className="flex flex-wrap items-baseline justify-between gap-2">
-              <span className="font-semibold">{t.topicTitle}</span>
-              <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-bold', style.chip)}>{style.label}</span>
+              <span className="font-semibold">{topic.topicTitle}</span>
+              <span className={cn('rounded-full px-2.5 py-0.5 text-xs font-bold', STATUS_CHIP[topic.status])}>{t(`charts.status.${topic.status}`)}</span>
             </div>
             <div
               className="mt-1.5 h-3 w-full rounded-full bg-line/60"
               role="img"
-              aria-label={t.accuracy === null ? `${t.topicTitle}: no answers yet` : `${t.topicTitle}: ${t.accuracy}% correct first time`}
-              title={t.accuracy === null ? 'No answers yet' : `${t.firstTryCorrect} of ${t.questionsAnswered} correct first time`}
+              aria-label={
+                topic.accuracy === null
+                  ? t('charts.noAnswersFor', { topic: topic.topicTitle })
+                  : t('charts.accuracyFor', { topic: topic.topicTitle, accuracy: topic.accuracy })
+              }
+              title={topic.accuracy === null ? t('report.noAnswers') : t('charts.correctOf', { correct: topic.firstTryCorrect, answered: topic.questionsAnswered })}
             >
-              {t.accuracy !== null && <div className="h-full rounded-full bg-lagoon" style={{ width: `${Math.max(t.accuracy, 2)}%` }} />}
+              {topic.accuracy !== null && <div className="h-full rounded-full bg-lagoon" style={{ width: `${Math.max(topic.accuracy, 2)}%` }} />}
             </div>
             <p className="mt-1 text-sm text-ink-soft">
-              {t.message}{' '}
-              {t.accuracy !== null && (
+              {topic.message}{' '}
+              {topic.accuracy !== null && (
                 <span className="tabular">
-                  {t.accuracy}% first time, {t.lessonsCompleted} of {t.lessonCount} lessons done.
+                  {t('charts.topicLine', { accuracy: topic.accuracy, done: topic.lessonsCompleted, total: topic.lessonCount })}
                 </span>
               )}
             </p>

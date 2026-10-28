@@ -2,12 +2,14 @@
 import * as DialogPrimitive from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import * as React from 'react';
+import { useT } from '@/components/i18n';
 
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
 export const DialogClose = DialogPrimitive.Close;
 
 export function DialogContent({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+  const t = useT();
   return (
     <DialogPrimitive.Portal>
       <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-ink/40" />
@@ -15,7 +17,7 @@ export function DialogContent({ title, description, children }: { title: string;
         <DialogPrimitive.Title className="font-display text-xl font-bold">{title}</DialogPrimitive.Title>
         {description && <DialogPrimitive.Description className="mt-2 text-ink-soft">{description}</DialogPrimitive.Description>}
         <div className="mt-5">{children}</div>
-        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full p-1 text-ink-soft hover:bg-chalk" aria-label="Close">
+        <DialogPrimitive.Close className="absolute right-4 top-4 rounded-full p-1 text-ink-soft hover:bg-chalk" aria-label={t('common.close')}>
           <X className="h-5 w-5" />
         </DialogPrimitive.Close>
       </DialogPrimitive.Content>

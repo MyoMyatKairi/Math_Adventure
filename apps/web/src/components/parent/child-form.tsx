@@ -5,16 +5,11 @@ import { useActionState, useState, useTransition } from 'react';
 import { createChildAction, deleteChildAction, updateChildAction } from '@/app/actions/children';
 import type { FormState } from '@/app/actions/auth';
 import { Avatar, avatarLabel } from '@/components/brand/avatar';
+import { useT } from '@/components/i18n';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogClose, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { Field, FormMessage, Input } from '@/components/ui/field';
 import { cn } from '@/lib/utils';
-
-const LEVEL_TOPICS: Record<string, string> = {
-  level_1: 'Counting, adding and taking away, shapes, patterns, measuring',
-  level_2: 'Place value, times tables, division, fractions, time and money',
-  level_3: 'Decimals, percentages, ratios, negative numbers, area, algebra',
-};
 
 export interface ChildFormValues {
   id?: string;
@@ -27,6 +22,7 @@ export interface ChildFormValues {
 export function ChildForm({ initial }: { initial?: ChildFormValues }) {
   const action = initial?.id ? updateChildAction.bind(null, initial.id) : createChildAction;
   const [state, formAction, pending] = useActionState<FormState, FormData>(action, { status: 'idle' });
+  const t = useT();
   const [avatar, setAvatar] = useState<AvatarKey>(initial?.avatarKey ?? 'fox');
   const [ageGroup, setAgeGroup] = useState<AgeGroup>(initial?.ageGroup ?? '5-7');
   const [levelId, setLevelId] = useState<string>(initial?.learningLevelId ?? levelForAgeGroup('5-7').id);
@@ -37,7 +33,7 @@ export function ChildForm({ initial }: { initial?: ChildFormValues }) {
     <form action={formAction} className="space-y-6" noValidate>
       {state.message && <FormMessage>{state.message}</FormMessage>}
 
-      <Field label="Nickname" htmlFor="displayName" error={state.errors?.displayName} hint="A first name or nickname is plenty. It’s only shown inside your account.">
+      <Field label={t('child.nickname')} htmlFor="displayName" error={state.errors?.displayName} hint={t('child.nicknameHint')}>
         <Input
           id="displayName"
           name="displayName"
@@ -53,17 +49,17 @@ export function ChildForm({ initial }: { initial?: ChildFormValues }) {
       </Field>
 
       <fieldset>
-        <legend className="font-semibold">Avatar</legend>
+        <legend className="font-semibold">{t('child.avatar')}</legend>
         <input type="hidden" name="avatarKey" value={avatar} />
-        <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Avatar">
+        <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label={t('child.avatar')}>
           {AVATAR_KEYS.map((k) => (
             <button
               key={k}
               type="button"
               role="radio"
               aria-checked={avatar === k}
-              aria-label={avatarLabel(k)}
-              title={avatarLabel(k)}
+              aria-label={avatarLabel(k, t)}
+              title={avatarLabel(k, t)}
               onClick={() => setAvatar(k)}
               className={cn(
                 'grid h-14 w-14 place-items-center rounded-xl border-2 transition-colors',
@@ -77,9 +73,9 @@ export function ChildForm({ initial }: { initial?: ChildFormValues }) {
       </fieldset>
 
       <fieldset>
-        <legend className="font-semibold">Age group</legend>
+        <legend className="font-semibold">{t('child.ageGroup')}</legend>
         <input type="hidden" name="ageGroup" value={ageGroup} />
-        <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl border-2 border-line bg-chalk p-1 sm:max-w-sm" role="radiogroup" aria-label="Age group">
+        <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl border-2 border-line bg-chalk p-1 sm:max-w-sm" role="radiogroup" aria-label={t('child.ageGroup')}>
           {AGE_GROUPS.map((g) => (
             <button
               key={g}
@@ -102,10 +98,10 @@ export function ChildForm({ initial }: { initial?: ChildFormValues }) {
       </fieldset>
 
       <fieldset>
-        <legend className="font-semibold">Starting level</legend>
-        <p className="text-sm text-ink-soft">We suggest one from the age group. Choose another if it suits your child better.</p>
+        <legend className="font-semibold">{t('child.level')}</legend>
+        <p className="text-sm text-ink-soft">{t('child.levelLead')}</p>
         <input type="hidden" name="learningLevelId" value={levelId} />
-        <div className="mt-2 space-y-2" role="radiogroup" aria-label="Starting level">
+        <div className="mt-2 space-y-2" role="radiogroup" aria-label={t('child.level')}>
           {LEARNING_LEVELS.map((l) => {
             const selected = levelId === l.id;
             return (
@@ -134,9 +130,10 @@ export function ChildForm({ initial }: { initial?: ChildFormValues }) {
                 </span>
                 <span className="min-w-0">
                   <span className="block font-bold leading-snug">
-                    {l.name} <span className="text-sm font-semibold text-ink-soft">· ages {l.minimumAge}–{l.maximumAge}</span>
+                    {t(`level.${l.key}`)}{' '}
+                    <span className="text-sm font-semibold text-ink-soft">· {t('child.levelAges', { min: l.minimumAge, max: l.maximumAge })}</span>
                   </span>
-                  <span className="block text-sm leading-snug text-ink-soft">{LEVEL_TOPICS[l.key]}</span>
+                  <span className="block text-sm leading-snug text-ink-soft">{t(`level.topics.${l.key}`)}</span>
                 </span>
               </button>
             );
@@ -147,7 +144,7 @@ export function ChildForm({ initial }: { initial?: ChildFormValues }) {
 
       <div className="border-t-2 border-line pt-5">
         <Button type="submit" loading={pending} className="w-full sm:w-auto">
-          {initial?.id ? 'Save changes' : 'Add learner'}
+          {t(initial?.id ? 'child.save' : 'child.add')}
         </Button>
       </div>
     </form>
@@ -157,19 +154,17 @@ export function ChildForm({ initial }: { initial?: ChildFormValues }) {
 export function DeleteChildButton({ childId, name }: { childId: string; name: string }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string>();
+  const t = useT();
   return (
     <Dialog>
       <DialogTrigger asChild>
-        <Button variant="secondary">Delete profile</Button>
+        <Button variant="secondary">{t('child.delete')}</Button>
       </DialogTrigger>
-      <DialogContent
-        title={`Delete ${name}'s profile?`}
-        description={`This permanently removes ${name}'s stars, badges, lesson history and progress. This can’t be undone.`}
-      >
+      <DialogContent title={t('child.confirmTitle', { name })} description={t('child.confirmBody', { name })}>
         {error && <FormMessage>{error}</FormMessage>}
         <div className="mt-2 flex flex-wrap justify-end gap-2">
           <DialogClose asChild>
-            <Button variant="secondary">Keep profile</Button>
+            <Button variant="secondary">{t('child.keep')}</Button>
           </DialogClose>
           <Button
             variant="danger"
@@ -181,7 +176,7 @@ export function DeleteChildButton({ childId, name }: { childId: string; name: st
               })
             }
           >
-            Delete permanently
+            {t('child.deleteForever')}
           </Button>
         </div>
       </DialogContent>

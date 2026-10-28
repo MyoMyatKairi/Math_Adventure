@@ -1,3 +1,6 @@
+'use client';
+
+import { useT } from '@/components/i18n';
 import { cn } from '@/lib/utils';
 
 export function StarIcon({ filled, className }: { filled: boolean; className?: string }) {
@@ -15,8 +18,9 @@ export function StarIcon({ filled, className }: { filled: boolean; className?: s
 }
 
 export function Stars({ count, max = 3, className, size }: { count: number; max?: number; className?: string; size?: string }) {
+  const t = useT();
   return (
-    <span className={cn('inline-flex gap-0.5', className)} role="img" aria-label={`${count} of ${max} stars`}>
+    <span className={cn('inline-flex gap-0.5', className)} role="img" aria-label={t('common.starsOf', { count, max })}>
       {Array.from({ length: max }, (_, i) => (
         <StarIcon key={i} filled={i < count} className={size} />
       ))}

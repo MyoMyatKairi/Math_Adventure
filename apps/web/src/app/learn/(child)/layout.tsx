@@ -1,11 +1,14 @@
-import { xpLevel } from '@math-adventure/shared';
+import { levelName, xpLevel } from '@math-adventure/shared';
 import { Avatar } from '@/components/brand/avatar';
 import { LearnerMenuLinks, LearnerNav } from '@/components/learn/learner-nav';
+import { StreakChip } from '@/components/learn/streak';
 import { StarIcon } from '@/components/ui/stars';
+import { getT } from '@/lib/i18n';
 import { requireLearner } from '@/lib/learner';
 
 export default async function LearnerLayout({ children }: { children: React.ReactNode }) {
-  const { child, stats } = await requireLearner();
+  const { child, stats, streak } = await requireLearner();
+  const t = await getT();
   const lvl = xpLevel(stats.totalXp);
   return (
     <div className="min-h-dvh pb-24 sm:pb-8">
@@ -15,13 +18,14 @@ export default async function LearnerLayout({ children }: { children: React.Reac
           <div>
             <p className="font-display text-lg font-extrabold leading-tight">{child.displayName}</p>
             <p className="text-sm font-semibold text-ink-soft">
-              {child.levelName}, explorer level {lvl.level}
+              {t('home.levelLine', { level: levelName(child.learningLevelId, t, child.levelName), xpLevel: lvl.level })}
             </p>
           </div>
-          <div className="ml-2 flex items-center gap-1 rounded-full bg-sun-soft px-3 py-1 font-display font-extrabold tabular text-sun-dark" aria-label={`${stats.totalStars} stars`}>
+          <div className="ml-2 flex items-center gap-1 rounded-full bg-sun-soft px-3 py-1 font-display font-extrabold tabular text-sun-dark" aria-label={t('home.starsLabel', { count: stats.totalStars })}>
             <StarIcon filled className="h-4 w-4" />
             {stats.totalStars}
           </div>
+          <StreakChip streak={streak} />
         </div>
         <LearnerMenuLinks />
       </header>

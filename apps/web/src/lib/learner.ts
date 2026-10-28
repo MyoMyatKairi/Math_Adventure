@@ -2,6 +2,7 @@ import 'server-only';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
+import { getLocale } from './i18n';
 import { createClient } from './supabase/server';
 import type { LearnerOverview } from './types';
 
@@ -22,12 +23,12 @@ export async function clearActiveChild() {
   (await cookies()).delete(ACTIVE_CHILD_COOKIE);
 }
 
-/** Loads the active learner's overview, or sends the user to pick a profile. */
+/** Loads the active learner's overview in the visitor's language, or sends the user to pick a profile. */
 export const requireLearner = cache(async (): Promise<LearnerOverview> => {
   const childId = (await cookies()).get(ACTIVE_CHILD_COOKIE)?.value;
   if (!childId) redirect('/learn');
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc('get_learner_overview', { p_child_id: childId });
+  const { data, error } = await supabase.rpc('get_learner_overview', { p_child_id: childId, p_locale: await getLocale() });
   if (error || !data) redirect('/learn');
   return data as LearnerOverview;
 });

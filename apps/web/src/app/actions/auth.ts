@@ -3,6 +3,7 @@
 import { fieldErrors, newPasswordSchema, resetRequestSchema, signInSchema, signUpSchema } from '@math-adventure/shared';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
+import { getLocale, getT } from '@/lib/i18n';
 import { siteUrl } from '@/lib/env';
 import { clearActiveChild } from '@/lib/learner';
 import { lockParentArea, unlockParentArea } from '@/lib/parent-gate';
@@ -29,8 +30,9 @@ function safeNext(next: unknown, fallback: string): string {
 
 export async function signUpAction(_: FormState, fd: FormData): Promise<FormState> {
   const values = keep(fd, ['displayName', 'email']);
+  const t = await getT();
   const parsed = signUpSchema.safeParse(entries(fd));
-  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values };
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error, await getLocale()), values };
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
@@ -42,29 +44,31 @@ export async function signUpAction(_: FormState, fd: FormData): Promise<FormStat
   });
   if (error) {
     if (/registered|exists/i.test(error.message)) {
-      return { status: 'error', values, message: 'An account with this email already exists. Sign in instead, or reset your password.' };
+      return { status: 'error', values, message: t('auth.msg.accountExists') };
     }
-    if (/password/i.test(error.message)) return { status: 'error', values, errors: { password: error.message } };
+    // Auth server password messages are English-only, so show our own.
+    if (/password/i.test(error.message)) return { status: 'error', values, errors: { password: t('auth.msg.weakPassword') } };
     if (error.status === 429 || /rate|too many/i.test(error.message)) {
-      return { status: 'error', values, message: 'Too many sign-ups right now. Please wait a while and try again.' };
+      return { status: 'error', values, message: t('auth.msg.tooManySignUps') };
     }
-    return { status: 'error', values, message: 'We could not create your account. Please try again in a moment.' };
+    return { status: 'error', values, message: t('auth.msg.signUpFailed') };
   }
-  if (!data.session) return { status: 'check-email', message: `We sent a confirmation link to ${parsed.data.email}. Open it to finish signing up.` };
+  if (!data.session) return { status: 'check-email', message: t('auth.msg.checkEmail', { email: parsed.data.email }) };
   await unlockParentArea(data.session.user.id);
   redirect('/parent?welcome=1');
 }
 
 export async function signInAction(_: FormState, fd: FormData): Promise<FormState> {
   const values = keep(fd, ['email']);
+  const t = await getT();
   const parsed = signInSchema.safeParse(entries(fd));
-  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values };
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error, await getLocale()), values };
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error || !data.user) {
-    if (error && /confirm/i.test(error.message)) return { status: 'error', values, message: 'Please confirm your email address first. Check your inbox for the link.' };
-    if (error && /rate|too many/i.test(error.message)) return { status: 'error', values, message: 'Too many attempts. Wait a minute and try again.' };
-    return { status: 'error', values, message: 'That email and password don’t match an account.' };
+    if (error && /confirm/i.test(error.message)) return { status: 'error', values, message: t('auth.msg.confirmFirst') };
+    if (error && /rate|too many/i.test(error.message)) return { status: 'error', values, message: t('auth.msg.tooManyAttempts') };
+    return { status: 'error', values, message: t('auth.msg.wrongLogin') };
   }
   await unlockParentArea(data.user.id);
   redirect(safeNext(fd.get('next'), '/parent'));
@@ -80,23 +84,24 @@ export async function signOutAction() {
 
 export async function requestResetAction(_: FormState, fd: FormData): Promise<FormState> {
   const parsed = resetRequestSchema.safeParse(entries(fd));
-  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error), values: keep(fd, ['email']) };
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error, await getLocale()), values: keep(fd, ['email']) };
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(parsed.data.email, {
     redirectTo: `${siteUrl()}/auth/callback?next=/reset-password`,
   });
   // Same response whether or not the account exists, so emails can't be probed.
-  return { status: 'success', message: 'If an account uses that email, a reset link is on its way. The link works once.' };
+  return { status: 'success', message: (await getT())('auth.msg.resetSent') };
 }
 
 export async function updatePasswordAction(_: FormState, fd: FormData): Promise<FormState> {
   const user = await requireUser();
+  const t = await getT();
   const parsed = newPasswordSchema.safeParse(entries(fd));
-  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error) };
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error, await getLocale()) };
   const supabase = await createClient();
   const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
   if (error) {
-    return { status: 'error', message: /different|same/i.test(error.message) ? 'Choose a password you haven’t used here before.' : 'We could not update your password. Request a new reset link and try again.' };
+    return { status: 'error', message: /different|same/i.test(error.message) ? t('auth.msg.passwordReused') : t('auth.msg.passwordUpdateFailed') };
   }
   await unlockParentArea(user.id);
   redirect('/parent?password=updated');
@@ -106,10 +111,11 @@ export async function updatePasswordAction(_: FormState, fd: FormData): Promise<
 export async function parentGateAction(_: FormState, fd: FormData): Promise<FormState> {
   const user = await requireUser();
   const password = fd.get('password');
-  if (typeof password !== 'string' || password.length === 0) return { status: 'error', errors: { password: 'Enter your password.' } };
+  const t = await getT();
+  if (typeof password !== 'string' || password.length === 0) return { status: 'error', errors: { password: t('auth.msg.enterPassword') } };
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email: user.email ?? '', password });
-  if (error) return { status: 'error', errors: { password: 'That password isn’t right.' } };
+  if (error) return { status: 'error', errors: { password: t('auth.msg.wrongPassword') } };
   await unlockParentArea(user.id);
   redirect(safeNext(fd.get('next'), '/parent'));
 }
