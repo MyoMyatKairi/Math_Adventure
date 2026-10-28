@@ -5,7 +5,7 @@ import { Body, Button, Field, H1, Message, Screen } from '../src/components/ui';
 import { useLocale } from '../src/lib/i18n';
 import { supabase } from '../src/lib/supabase';
 
-const WEB_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'http://localhost:3000';
+const WEB_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'http://localhost:3003';
 
 export default function ForgotPassword() {
   const { locale, t } = useLocale();
