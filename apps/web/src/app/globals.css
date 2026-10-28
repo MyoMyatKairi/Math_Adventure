@@ -26,8 +26,9 @@
   --color-sky: #4f8fe8;
   --color-sky-soft: #e3eefc;
 
-  --font-display: ui-rounded, 'SF Pro Rounded', 'Nunito', 'Varela Round', 'Arial Rounded MT Bold', system-ui, sans-serif;
-  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  /* Burmese and Thai glyphs fall through to Noto (loaded per script by next/font). */
+  --font-display: ui-rounded, 'SF Pro Rounded', 'Nunito', 'Varela Round', 'Arial Rounded MT Bold', var(--font-myanmar), var(--font-thai), system-ui, sans-serif;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, var(--font-myanmar), var(--font-thai), sans-serif;
 
   --radius-pill: 999px;
   --shadow-lift: 0 2px 0 0 rgb(28 37 65 / 0.12);
@@ -57,6 +58,20 @@ h3,
 
 .tabular {
   font-variant-numeric: tabular-nums;
+}
+
+/* Burmese and Thai stack marks above and below the line: give them more room. */
+html:lang(my) body,
+html:lang(th) body {
+  line-height: 1.75;
+}
+html:lang(my) :is(h1, h2, h3, .font-display),
+html:lang(th) :is(h1, h2, h3, .font-display) {
+  letter-spacing: 0;
+}
+html:lang(my) :is(h1, h2),
+html:lang(th) :is(h1, h2) {
+  line-height: 1.4;
 }
 
 :focus-visible {
@@ -111,6 +126,53 @@ h3,
 }
 .animate-rise {
   animation: rise 280ms ease-out both;
+}
+
+@keyframes hop {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, -10vh, 0) rotate(0);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--drift, 0), 105vh, 0) rotate(var(--spin, 540deg));
+    opacity: 0.9;
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.animate-hop {
+  animation: hop 1.4s ease-in-out infinite;
+}
+.animate-sheet {
+  animation: sheet-up 220ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
+}
+.confetti-piece {
+  position: absolute;
+  top: 0;
+  animation: confetti-fall var(--fall, 2.4s) cubic-bezier(0.3, 0.6, 0.5, 1) var(--delay, 0s) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece {
+    display: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -10,6 +10,7 @@ import {
   updatePasswordAction,
   type FormState,
 } from '@/app/actions/auth';
+import { useT } from '@/components/i18n';
 import { Button } from '@/components/ui/button';
 import { Field, FormMessage, Input } from '@/components/ui/field';
 
@@ -51,25 +52,24 @@ function TextField({
 
 export function SignUpForm() {
   const [state, action, pending] = useActionState(signUpAction, initial);
+  const t = useT();
   if (state.status === 'check-email') return <FormMessage tone="success">{state.message}</FormMessage>;
   return (
     <form action={action} className="space-y-4" noValidate>
       {state.message && <FormMessage>{state.message}</FormMessage>}
-      <TextField key={`n-${state.values?.displayName}`} name="displayName" label="Your first name" autoComplete="given-name" error={state.errors?.displayName} defaultValue={state.values?.displayName} />
-      <TextField key={`e-${state.values?.email}`} name="email" label="Email" type="email" autoComplete="email" error={state.errors?.email} defaultValue={state.values?.email} />
+      <TextField key={`n-${state.values?.displayName}`} name="displayName" label={t('auth.field.firstName')} autoComplete="given-name" error={state.errors?.displayName} defaultValue={state.values?.displayName} />
+      <TextField key={`e-${state.values?.email}`} name="email" label={t('auth.field.email')} type="email" autoComplete="email" error={state.errors?.email} defaultValue={state.values?.email} />
       <TextField
         name="password"
-        label="Password"
+        label={t('auth.field.password')}
         type="password"
         autoComplete="new-password"
         error={state.errors?.password}
-        hint="At least 8 characters, with a letter and a number."
+        hint={t('auth.field.passwordHint')}
       />
-      <p className="text-sm text-ink-soft">
-        This account is for a parent or carer aged 18 or over. You&apos;ll add your children as learners next.
-      </p>
+      <p className="text-sm text-ink-soft">{t('auth.signUp.adultNote')}</p>
       <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Create account
+        {t('auth.signUp.submit')}
       </Button>
     </form>
   );
@@ -77,19 +77,20 @@ export function SignUpForm() {
 
 export function SignInForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(signInAction, initial);
+  const t = useT();
   return (
     <form action={action} className="space-y-4" noValidate>
       {state.message && <FormMessage>{state.message}</FormMessage>}
       {next && <input type="hidden" name="next" value={next} />}
-      <TextField key={`e-${state.values?.email}`} name="email" label="Email" type="email" autoComplete="email" error={state.errors?.email} defaultValue={state.values?.email} />
-      <TextField name="password" label="Password" type="password" autoComplete="current-password" error={state.errors?.password} />
+      <TextField key={`e-${state.values?.email}`} name="email" label={t('auth.field.email')} type="email" autoComplete="email" error={state.errors?.email} defaultValue={state.values?.email} />
+      <TextField name="password" label={t('auth.field.password')} type="password" autoComplete="current-password" error={state.errors?.password} />
       <div className="text-right text-sm">
         <Link href="/forgot-password" className="font-semibold text-lagoon-dark underline underline-offset-4">
-          Forgot your password?
+          {t('auth.signIn.forgot')}
         </Link>
       </div>
       <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Sign in
+        {t('auth.signIn.submit')}
       </Button>
     </form>
   );
@@ -97,12 +98,13 @@ export function SignInForm({ next }: { next?: string }) {
 
 export function ForgotPasswordForm() {
   const [state, action, pending] = useActionState(requestResetAction, initial);
+  const t = useT();
   if (state.status === 'success') return <FormMessage tone="success">{state.message}</FormMessage>;
   return (
     <form action={action} className="space-y-4" noValidate>
-      <TextField key={`e-${state.values?.email}`} name="email" label="Email" type="email" autoComplete="email" error={state.errors?.email} defaultValue={state.values?.email} />
+      <TextField key={`e-${state.values?.email}`} name="email" label={t('auth.field.email')} type="email" autoComplete="email" error={state.errors?.email} defaultValue={state.values?.email} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Send reset link
+        {t('auth.forgot.submit')}
       </Button>
     </form>
   );
@@ -110,13 +112,14 @@ export function ForgotPasswordForm() {
 
 export function ResetPasswordForm() {
   const [state, action, pending] = useActionState(updatePasswordAction, initial);
+  const t = useT();
   return (
     <form action={action} className="space-y-4" noValidate>
       {state.message && <FormMessage>{state.message}</FormMessage>}
-      <TextField name="password" label="New password" type="password" autoComplete="new-password" error={state.errors?.password} hint="At least 8 characters, with a letter and a number." />
-      <TextField name="confirm" label="Type it again" type="password" autoComplete="new-password" error={state.errors?.confirm} />
+      <TextField name="password" label={t('auth.field.newPassword')} type="password" autoComplete="new-password" error={state.errors?.password} hint={t('auth.field.passwordHint')} />
+      <TextField name="confirm" label={t('auth.field.confirm')} type="password" autoComplete="new-password" error={state.errors?.confirm} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Save new password
+        {t('auth.reset.submit')}
       </Button>
     </form>
   );
@@ -124,12 +127,13 @@ export function ResetPasswordForm() {
 
 export function ParentGateForm({ next }: { next?: string }) {
   const [state, action, pending] = useActionState(parentGateAction, initial);
+  const t = useT();
   return (
     <form action={action} className="space-y-4" noValidate>
       {next && <input type="hidden" name="next" value={next} />}
-      <TextField name="password" label="Parent password" type="password" autoComplete="current-password" error={state.errors?.password} />
+      <TextField name="password" label={t('auth.field.parentPassword')} type="password" autoComplete="current-password" error={state.errors?.password} />
       <Button type="submit" size="lg" className="w-full" loading={pending}>
-        Open parent area
+        {t('gate.submit')}
       </Button>
     </form>
   );

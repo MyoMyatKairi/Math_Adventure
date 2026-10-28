@@ -1,19 +1,24 @@
-import type { SectionContent } from '@math-adventure/shared';
+import { pickTranslation, type SectionContent } from '@math-adventure/shared';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { LessonPlayer } from '@/components/learn/lesson-player';
 import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import { getLocale, getT } from '@/lib/i18n';
 import { requireLearner } from '@/lib/learner';
 import { createClient } from '@/lib/supabase/server';
 
-export const metadata: Metadata = { title: 'Lesson' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('lesson.meta') };
+}
 
 export default async function LessonPage({ params, searchParams }: { params: Promise<{ lessonId: string }>; searchParams: Promise<{ daily?: string }> }) {
   const { lessonId } = await params;
   const { daily } = await searchParams;
   const o = await requireLearner();
+  const t = await getT();
+  const locale = await getLocale();
 
   const world = o.worlds.find((w) => w.lessons.some((l) => l.id === lessonId));
   const lesson = world?.lessons.find((l) => l.id === lessonId);
@@ -22,22 +27,22 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
   if (!world.unlocked) {
     return (
       <EmptyState
-        title="This lesson is still locked"
+        title={t('lesson.locked')}
         action={
           <Button asChild>
-            <Link href="/learn/map">Back to the map</Link>
+            <Link href="/learn/map">{t('world.back')}</Link>
           </Button>
         }
       >
-        Finish more lessons in the world before {world.title} to open it.
+        {t('lesson.lockedBody', { world: world.title })}
       </EmptyState>
     );
   }
 
   const supabase = await createClient();
   const [{ data: sections }, { data: meta }] = await Promise.all([
-    supabase.from('lesson_sections').select('section_type, title, content_json').eq('lesson_id', lessonId).order('display_order'),
-    supabase.from('lessons').select('learning_objective').eq('id', lessonId).single(),
+    supabase.from('lesson_sections').select('section_type, title, content_json, translations').eq('lesson_id', lessonId).order('display_order'),
+    supabase.from('lessons').select('learning_objective, translations').eq('id', lessonId).single(),
   ]);
 
   // Suggest the next unfinished lesson in this world (or the next open world).
@@ -55,13 +60,17 @@ export default async function LessonPage({ params, searchParams }: { params: Pro
       lesson={{
         id: lesson.id,
         title: lesson.title,
-        objective: meta?.learning_objective ?? lesson.description,
+        objective: meta ? pickTranslation(meta.learning_objective, meta.translations, locale, 'learning_objective') : lesson.description,
         worldTitle: world.title,
         worldId: world.id,
         minutes: lesson.estimatedMinutes,
         status: lesson.status,
       }}
-      sections={(sections ?? []).map((s) => ({ type: s.section_type, title: s.title, content: s.content_json as SectionContent }))}
+      sections={(sections ?? []).map((s) => ({
+        type: s.section_type,
+        title: pickTranslation(s.title, s.translations, locale, 'title'),
+        content: pickTranslation(s.content_json as SectionContent, s.translations, locale, 'content'),
+      }))}
       nextLesson={next ? { id: next.id, title: next.title } : null}
     />
   );

@@ -1,27 +1,21 @@
-import type { AvatarKey } from '@math-adventure/shared';
+import type { AvatarKey, Translate } from '@math-adventure/shared';
 import { cn } from '@/lib/utils';
 
-const LABEL: Record<AvatarKey, string> = {
-  fox: 'Fox',
-  owl: 'Owl',
-  panda: 'Panda',
-  turtle: 'Turtle',
-  rocket: 'Rocket',
-  robot: 'Robot',
-  whale: 'Whale',
-  lion: 'Lion',
-};
-export const avatarLabel = (k: AvatarKey) => LABEL[k];
+export const avatarLabel = (k: AvatarKey, t: Translate) => t(`avatar.${k}`);
 
-/** Original, simple avatar illustrations drawn from basic shapes. */
-export function Avatar({ avatarKey, className, decorative = true }: { avatarKey: AvatarKey; className?: string; decorative?: boolean }) {
+/**
+ * Original, simple avatar illustrations drawn from basic shapes. Decorative by
+ * default; pass `label` (see avatarLabel) to expose it to screen readers.
+ */
+export function Avatar({ avatarKey, className, label }: { avatarKey: AvatarKey; className?: string; label?: string }) {
+  const decorative = !label;
   return (
     <svg
       viewBox="0 0 64 64"
       className={cn('h-12 w-12 shrink-0', className)}
       role={decorative ? undefined : 'img'}
       aria-hidden={decorative ? true : undefined}
-      aria-label={decorative ? undefined : LABEL[avatarKey]}
+      aria-label={label}
     >
       {ART[avatarKey]}
     </svg>

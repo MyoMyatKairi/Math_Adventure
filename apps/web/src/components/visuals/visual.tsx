@@ -1,4 +1,7 @@
-import { describeVisual, type VisualData } from '@math-adventure/shared';
+'use client';
+
+import { describeVisual, type Translate, type VisualData } from '@math-adventure/shared';
+import { useLocale, useT } from '@/components/i18n';
 import { cn } from '@/lib/utils';
 
 type ObjectKey = Extract<VisualData, { kind: 'objects' }>['object'];
@@ -8,16 +11,18 @@ const INK = '#1c2541';
 
 /** Renders a structured visual model. Each one carries a text description for screen readers. */
 export function Visual({ visual, className, size = 'md' }: { visual: VisualData; className?: string; size?: 'sm' | 'md' }) {
+  const locale = useLocale();
+  const t = useT();
   return (
-    <figure className={cn('flex justify-center', className)} role="img" aria-label={describeVisual(visual)}>
+    <figure className={cn('flex justify-center', className)} role="img" aria-label={describeVisual(visual, locale)}>
       <div aria-hidden="true" className={cn('w-full', size === 'sm' ? 'max-w-[220px]' : 'max-w-[440px]')}>
-        {renderVisual(visual)}
+        {renderVisual(visual, t)}
       </div>
     </figure>
   );
 }
 
-function renderVisual(v: VisualData): React.ReactNode {
+function renderVisual(v: VisualData, t: Translate): React.ReactNode {
   switch (v.kind) {
     case 'objects':
       return <ObjectGroups object={v.object} groups={v.groups} crossedOut={v.crossedOut ?? 0} />;
@@ -50,7 +55,7 @@ function renderVisual(v: VisualData): React.ReactNode {
     case 'rectangle':
       return <Rectangle {...v} />;
     case 'triangle':
-      return <Triangle {...v} />;
+      return <Triangle {...v} t={t} />;
     case 'ruler':
       return <Ruler length={v.length} object={v.object} />;
     case 'percent_grid':
@@ -392,7 +397,7 @@ function Rectangle({ width, height, unit, showGrid }: Extract<VisualData, { kind
   );
 }
 
-function Triangle({ base, height, unit }: Extract<VisualData, { kind: 'triangle' }>) {
+function Triangle({ base, height, unit, t }: Extract<VisualData, { kind: 'triangle' }> & { t: Translate }) {
   const scale = Math.min(260 / base, 150 / height);
   const b = base * scale;
   const h = height * scale;
@@ -405,10 +410,10 @@ function Triangle({ base, height, unit }: Extract<VisualData, { kind: 'triangle'
       <line x1={apexX} x2={apexX} y1={top} y2={top + h} stroke={INK} strokeWidth="2" strokeDasharray="6 5" />
       <rect x={apexX} y={top + h - 12} width="12" height="12" fill="none" stroke={INK} strokeWidth="1.5" />
       <text x={ox + b / 2} y={top + h + 28} textAnchor="middle" fontSize="18" fontWeight="700" fill={INK} fontFamily="system-ui">
-        base {base} {unit}
+        {t('visual.base', { value: `${base} ${unit}` })}
       </text>
       <text x={apexX + 8} y={top + h / 2} fontSize="18" fontWeight="700" fill={INK} fontFamily="system-ui">
-        height {height} {unit}
+        {t('visual.height', { value: `${height} ${unit}` })}
       </text>
     </svg>
   );

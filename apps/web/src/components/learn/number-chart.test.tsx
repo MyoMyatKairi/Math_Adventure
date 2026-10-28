@@ -1,5 +1,6 @@
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { I18nProvider } from '@/components/i18n';
 import { NumberChart } from './number-chart';
 
 afterEach(() => vi.useRealTimers());
@@ -38,5 +39,28 @@ describe('NumberChart', () => {
     for (let i = 0; i < 10; i++) step();
     expect(screen.getByRole('button', { name: '10, ten' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Count with me' })).toBeInTheDocument();
+  });
+});
+
+describe('NumberChart in Burmese and Thai', () => {
+  it('names numbers in the chosen language', () => {
+    render(
+      <I18nProvider locale="th">
+        <NumberChart />
+      </I18nProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: '7, เจ็ด' }));
+    expect(screen.getByText('เจ็ด')).toBeInTheDocument();
+    expect(screen.getByText('สำรวจแล้ว 2 จาก 10')).toBeInTheDocument();
+  });
+
+  it('labels the chart in Burmese', () => {
+    render(
+      <I18nProvider locale="my">
+        <NumberChart />
+      </I18nProvider>,
+    );
+    expect(screen.getByRole('heading', { name: 'ဂဏန်းဇယား' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '10, တစ်ဆယ်' })).toBeInTheDocument();
   });
 });

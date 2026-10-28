@@ -3,22 +3,25 @@ import Link from 'next/link';
 import { WorldEmblem } from '@/components/brand/icons';
 import { Meter } from '@/components/ui/meter';
 import { Stars } from '@/components/ui/stars';
+import { levelName } from '@math-adventure/shared';
+import { getT } from '@/lib/i18n';
 import { requireLearner } from '@/lib/learner';
 
-export const metadata: Metadata = { title: 'My progress' };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await getT())('progress.meta') };
+}
 
 export default async function ProgressPage() {
   const o = await requireLearner();
+  const t = await getT();
   const all = o.worlds.flatMap((w) => w.lessons);
   const done = all.filter((l) => l.status === 'completed').length;
   return (
     <div className="space-y-6">
-      <h1 className="font-display text-3xl font-extrabold">My progress</h1>
+      <h1 className="font-display text-3xl font-extrabold">{t('progress.title')}</h1>
       <div className="rounded-3xl bg-paper p-5 shadow-[0_4px_0_0_var(--color-line)]">
-        <p className="font-semibold">
-          {done} of {all.length} lessons finished in {o.child.levelName}
-        </p>
-        <Meter className="mt-2" value={done} max={all.length} label={`${done} of ${all.length} lessons finished`} />
+        <p className="font-semibold">{t('progress.summary', { done, total: all.length, level: levelName(o.child.learningLevelId, t, o.child.levelName) })}</p>
+        <Meter className="mt-2" value={done} max={all.length} label={t('progress.meter', { done, total: all.length })} />
       </div>
       {o.worlds.map((w) => (
         <section key={w.id} aria-labelledby={`w-${w.id}`} className="rounded-3xl bg-paper p-5 shadow-[0_4px_0_0_var(--color-line)]">
@@ -27,7 +30,7 @@ export default async function ProgressPage() {
             <h2 id={`w-${w.id}`} className="font-display text-xl font-extrabold">
               {w.title}
             </h2>
-            {!w.unlocked && <span className="text-sm font-semibold text-ink-soft">Locked</span>}
+            {!w.unlocked && <span className="text-sm font-semibold text-ink-soft">{t('status.locked')}</span>}
           </div>
           <ul className="mt-3 divide-y divide-line">
             {w.lessons.map((l) => (
@@ -41,10 +44,10 @@ export default async function ProgressPage() {
                 )}
                 {l.status === 'completed' ? (
                   <span className="flex items-center gap-2 text-sm text-ink-soft tabular">
-                    Best {l.bestScore}% <Stars count={l.bestStars} size="h-4 w-4" />
+                    {t('progress.best', { score: l.bestScore })} <Stars count={l.bestStars} size="h-4 w-4" />
                   </span>
                 ) : (
-                  <span className="text-sm text-ink-soft">{l.status === 'in_progress' ? 'In progress' : 'Not started'}</span>
+                  <span className="text-sm text-ink-soft">{t(l.status === 'in_progress' ? 'status.inProgress' : 'status.notStarted')}</span>
                 )}
               </li>
             ))}

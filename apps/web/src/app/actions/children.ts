@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { requireUser } from '@/lib/auth';
 import { friendlyError } from '@/lib/errors';
+import { getLocale } from '@/lib/i18n';
 import { ACTIVE_CHILD_COOKIE, clearActiveChild, setActiveChild } from '@/lib/learner';
 import { requireParentArea } from '@/lib/parent-area';
 import { lockParentArea } from '@/lib/parent-gate';
@@ -23,7 +24,8 @@ function readChild(fd: FormData) {
 export async function createChildAction(_: FormState, fd: FormData): Promise<FormState> {
   await requireParentArea();
   const parsed = readChild(fd);
-  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error) };
+  const locale = await getLocale();
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error, locale) };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('child_profiles')
@@ -35,14 +37,15 @@ export async function createChildAction(_: FormState, fd: FormData): Promise<For
     })
     .select('id')
     .single();
-  if (error || !data) return { status: 'error', message: friendlyError(error) };
+  if (error || !data) return { status: 'error', message: friendlyError(error, locale) };
   redirect(`/parent?added=${encodeURIComponent(parsed.data.displayName)}`);
 }
 
 export async function updateChildAction(childId: string, _: FormState, fd: FormData): Promise<FormState> {
   await requireParentArea();
   const parsed = readChild(fd);
-  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error) };
+  const locale = await getLocale();
+  if (!parsed.success) return { status: 'error', errors: fieldErrors(parsed.error, locale) };
   const supabase = await createClient();
   const { data, error } = await supabase
     .from('child_profiles')
@@ -54,8 +57,8 @@ export async function updateChildAction(childId: string, _: FormState, fd: FormD
     })
     .eq('id', childId)
     .select('id');
-  if (error) return { status: 'error', message: friendlyError(error) };
-  if (!data?.length) return { status: 'error', message: 'That learner profile is not available.' };
+  if (error) return { status: 'error', message: friendlyError(error, locale) };
+  if (!data?.length) return { status: 'error', message: friendlyError({ message: 'child_not_found' }, locale) };
   redirect(`/parent/children/${childId}?saved=1`);
 }
 
@@ -63,8 +66,9 @@ export async function deleteChildAction(childId: string): Promise<FormState> {
   await requireParentArea();
   const supabase = await createClient();
   const { data, error } = await supabase.from('child_profiles').delete().eq('id', childId).select('display_name');
-  if (error) return { status: 'error', message: friendlyError(error) };
-  if (!data?.length) return { status: 'error', message: 'That learner profile is not available.' };
+  const locale = await getLocale();
+  if (error) return { status: 'error', message: friendlyError(error, locale) };
+  if (!data?.length) return { status: 'error', message: friendlyError({ message: 'child_not_found' }, locale) };
   if ((await cookies()).get(ACTIVE_CHILD_COOKIE)?.value === childId) await clearActiveChild();
   redirect(`/parent?removed=${encodeURIComponent(data[0]!.display_name)}`);
 }
