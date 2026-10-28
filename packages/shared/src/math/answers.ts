@@ -1,3 +1,5 @@
+import type { Locale } from '../i18n/locales';
+import { translate, type MessageKey } from '../i18n/translate';
 import type { AnswerData, QuestionOption } from '../schemas/content';
 import { COMPARE_SYMBOLS } from '../schemas/content';
 import type { QuestionType } from '../types';
@@ -99,25 +101,29 @@ function checkFormat(
 }
 
 /** Friendly message for invalid input. Never reveals the answer. */
-export function invalidInputMessage(reason: InvalidReason, format: AnswerData['format'] = 'any'): string {
+export function invalidInputMessage(reason: InvalidReason, format: AnswerData['format'] = 'any', locale: Locale = 'en'): string {
+  return translate(locale, invalidInputKey(reason, format));
+}
+
+function invalidInputKey(reason: InvalidReason, format: AnswerData['format']): MessageKey {
   switch (reason) {
     case 'empty':
-      return 'Type an answer first.';
+      return 'invalid.empty';
     case 'too_long':
-      return 'That answer is too long. Try a shorter number.';
+      return 'invalid.tooLong';
     case 'divide_by_zero':
-      return 'A fraction cannot have 0 on the bottom.';
+      return 'invalid.divideByZero';
     case 'unknown_option':
-      return 'Pick one of the answers.';
+      return 'invalid.unknownOption';
     case 'unknown_symbol':
-      return 'Choose <, > or =.';
+      return 'invalid.unknownSymbol';
     case 'wrong_format':
-      if (format === 'decimal') return 'Write your answer as a decimal, like 0.5.';
-      if (format === 'simplest_fraction') return 'Write your answer as a fraction in its simplest form, like 2/3.';
-      return 'Write your answer as a fraction, like 3/4.';
+      if (format === 'decimal') return 'invalid.decimal';
+      if (format === 'simplest_fraction') return 'invalid.simplestFraction';
+      return 'invalid.fraction';
     case 'not_a_number':
     default:
-      return 'Type a number, like 7, -3, 2.5 or 3/4.';
+      return 'invalid.notANumber';
   }
 }
 

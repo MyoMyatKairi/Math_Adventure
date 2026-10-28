@@ -21,3 +21,4 @@ supabase/.temp
 next-env.d.ts
 dist-check
 .claude/settings.local.json
+.env.local

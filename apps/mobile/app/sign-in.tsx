@@ -1,13 +1,15 @@
 import { signInSchema, fieldErrors } from '@math-adventure/shared';
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Body, Button, Field, H1, Message, Screen } from '../src/components/ui';
+import { Body, Button, Field, H1, LanguageSwitcher, Message, Screen } from '../src/components/ui';
+import { useLocale } from '../src/lib/i18n';
 import { useSession } from '../src/lib/session';
 import { isConfigured, supabase } from '../src/lib/supabase';
 
 export default function SignIn() {
   const router = useRouter();
   const { unlockParent } = useSession();
+  const { locale, t } = useLocale();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -16,30 +18,31 @@ export default function SignIn() {
 
   async function submit() {
     const parsed = signInSchema.safeParse({ email, password });
-    if (!parsed.success) return setErrors(fieldErrors(parsed.error));
+    if (!parsed.success) return setErrors(fieldErrors(parsed.error, locale));
     setErrors({});
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword(parsed.data);
     setBusy(false);
-    if (error) return setMessage(/confirm/i.test(error.message) ? 'Please confirm your email address first.' : 'That email and password don’t match an account.');
+    if (error) return setMessage(t(/confirm/i.test(error.message) ? 'auth.msg.confirmFirst' : 'auth.msg.wrongLogin'));
     unlockParent();
     router.replace('/profiles');
   }
 
   return (
     <Screen>
-      <H1>Welcome back</H1>
-      <Body muted>Sign in with your parent account.</Body>
-      {!isConfigured ? <Message>App is missing its Supabase settings. See docs/setup.md.</Message> : null}
+      <LanguageSwitcher />
+      <H1>{t('auth.signIn.title')}</H1>
+      <Body muted>{t('auth.signIn.lead')}</Body>
+      {!isConfigured ? <Message>{t('auth.msg.missingConfig')}</Message> : null}
       {message ? <Message>{message}</Message> : null}
-      <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" error={errors.email} />
-      <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" error={errors.password} />
-      <Button label="Sign in" size="lg" onPress={submit} loading={busy} />
+      <Field label={t('auth.field.email')} value={email} onChangeText={setEmail} autoCapitalize="none" autoComplete="email" keyboardType="email-address" error={errors.email} />
+      <Field label={t('auth.field.password')} value={password} onChangeText={setPassword} secureTextEntry autoComplete="password" error={errors.password} />
+      <Button label={t('auth.signIn.submit')} size="lg" onPress={submit} loading={busy} />
       <Link href="/forgot-password" style={{ color: '#0a7d74', fontWeight: '700', textAlign: 'center' }}>
-        Forgot your password?
+        {t('auth.signIn.forgot')}
       </Link>
       <Link href="/sign-up" style={{ color: '#0a7d74', fontWeight: '700', textAlign: 'center' }}>
-        New here? Create an account
+        {t('auth.signIn.newHereCreate')}
       </Link>
     </Screen>
   );

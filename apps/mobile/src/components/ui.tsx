@@ -1,5 +1,5 @@
-import type { AvatarKey } from '@math-adventure/shared';
-import type { ReactNode } from 'react';
+import { LOCALE_NAMES, LOCALES, type AvatarKey } from '@math-adventure/shared';
+import { useContext, type ReactNode } from 'react';
 import {
   ActivityIndicator,
   Modal,
@@ -15,36 +15,49 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
-import { colors, radius, space, TOUCH } from '../theme';
+import { useLocale, useT } from '../lib/i18n';
+import { colors, glass, radius, space, TOUCH, withAlpha } from '../theme';
+import { Backdrop, Glass, TabBarClearance } from './glass';
 
 // ---------------------------------------------------------------------------
 // Layout
 // ---------------------------------------------------------------------------
 
 export function Screen({ children, scroll = true, testID }: { children: ReactNode; scroll?: boolean; testID?: string }) {
+  const clearance = useContext(TabBarClearance);
+  const pad = clearance ? { paddingBottom: clearance } : null;
   return (
-    <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']} testID={testID}>
-      {scroll ? (
-        <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.column}>{children}</View>
-        </ScrollView>
-      ) : (
-        <View style={[styles.scroll, styles.column, { flex: 1 }]}>{children}</View>
-      )}
-    </SafeAreaView>
+    <View style={styles.root}>
+      <Backdrop />
+      <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']} testID={testID}>
+        {scroll ? (
+          <ScrollView contentContainerStyle={[styles.scroll, pad]} keyboardShouldPersistTaps="handled">
+            <View style={styles.column}>{children}</View>
+          </ScrollView>
+        ) : (
+          <View style={[styles.scroll, styles.column, pad, { flex: 1 }]}>{children}</View>
+        )}
+      </SafeAreaView>
+    </View>
   );
 }
 
+/** Glass card. `tone` tints the glass; `paper` is clear glass. */
 export function Card({ children, style, tone = 'paper' }: { children: ReactNode; style?: StyleProp<ViewStyle>; tone?: keyof typeof CARD_TONES }) {
-  return <View style={[styles.card, { backgroundColor: CARD_TONES[tone] }, tone === 'paper' && styles.cardShadow, style]}>{children}</View>;
+  const tint = CARD_TONES[tone];
+  return (
+    <Glass tint={tint ?? undefined} style={[styles.card, style]}>
+      {children}
+    </Glass>
+  );
 }
 const CARD_TONES = {
-  paper: colors.paper,
-  lagoon: colors.lagoonSoft,
-  sun: colors.sunSoft,
-  plum: colors.plumSoft,
-  ember: colors.emberSoft,
-  sky: colors.skySoft,
+  paper: null,
+  lagoon: withAlpha(colors.lagoonSoft, 0.7),
+  sun: withAlpha(colors.sunSoft, 0.7),
+  plum: withAlpha(colors.plumSoft, 0.7),
+  ember: withAlpha(colors.emberSoft, 0.7),
+  sky: withAlpha(colors.skySoft, 0.7),
   ink: colors.ink,
 };
 
@@ -101,25 +114,29 @@ export function Button({
       accessibilityState={{ disabled: Boolean(inactive), busy: Boolean(loading) }}
       disabled={inactive}
       onPress={onPress}
-      style={({ pressed }) => [
-        styles.button,
-        { backgroundColor: v.bg, borderColor: v.border, minHeight: size === 'lg' ? 60 : TOUCH },
-        v.shadow && !pressed && { borderBottomWidth: 4, borderBottomColor: v.shadow },
-        pressed && { transform: [{ translateY: 2 }] },
-        inactive && { opacity: 0.5 },
-      ]}
+      style={({ pressed }) => [pressed && { transform: [{ scale: 0.97 }] }, inactive && { opacity: 0.5 }]}
     >
-      {loading && <ActivityIndicator color={v.fg} style={{ marginRight: 8 }} />}
-      <Text style={[styles.buttonText, { color: v.fg, fontSize: size === 'lg' ? 20 : 17 }]}>{label}</Text>
+      {v.glass ? (
+        <Glass tint={v.tint} interactive style={[styles.button, { minHeight: size === 'lg' ? 60 : TOUCH }]}>
+          {loading && <ActivityIndicator color={v.fg} style={{ marginRight: 8 }} />}
+          <Text style={[styles.buttonText, { color: v.fg, fontSize: size === 'lg' ? 20 : 17 }]}>{label}</Text>
+        </Glass>
+      ) : (
+        <View style={[styles.button, { minHeight: size === 'lg' ? 60 : TOUCH }]}>
+          {loading && <ActivityIndicator color={v.fg} style={{ marginRight: 8 }} />}
+          <Text style={[styles.buttonText, { color: v.fg, fontSize: size === 'lg' ? 20 : 17 }]}>{label}</Text>
+        </View>
+      )}
     </Pressable>
   );
 }
-const VARIANTS: Record<Variant, { bg: string; fg: string; border: string; shadow?: string }> = {
-  primary: { bg: colors.lagoon, fg: '#fff', border: colors.lagoon, shadow: colors.lagoonDark },
-  secondary: { bg: colors.paper, fg: colors.ink, border: colors.line, shadow: colors.line },
-  sun: { bg: colors.sun, fg: colors.ink, border: colors.sun, shadow: '#d99a0f' },
-  ghost: { bg: 'transparent', fg: colors.inkSoft, border: 'transparent' },
-  danger: { bg: colors.emberDark, fg: '#fff', border: colors.emberDark, shadow: '#6e3507' },
+/** Prominent actions are tinted glass capsules; secondary is clear glass; ghost is bare text. */
+const VARIANTS: Record<Variant, { fg: string; glass: boolean; tint?: string }> = {
+  primary: { fg: '#fff', glass: true, tint: colors.lagoon },
+  secondary: { fg: colors.ink, glass: true },
+  sun: { fg: colors.ink, glass: true, tint: colors.sun },
+  ghost: { fg: colors.inkSoft, glass: false },
+  danger: { fg: '#fff', glass: true, tint: colors.emberDark },
 };
 
 export function Field({ label, error, hint, ...props }: TextInputProps & { label: string; error?: string; hint?: string }) {
@@ -151,19 +168,21 @@ export function Message({ tone = 'error', children }: { tone?: 'error' | 'succes
   );
 }
 
-export function Loading({ label = 'Loading' }: { label?: string }) {
+export function Loading({ label }: { label?: string }) {
+  const t = useT();
   return (
-    <View style={styles.center} accessibilityLabel={label} accessibilityRole="progressbar" testID="loading">
+    <View style={styles.center} accessibilityLabel={label ?? t('common.loading')} accessibilityRole="progressbar" testID="loading">
       <ActivityIndicator size="large" color={colors.lagoon} />
     </View>
   );
 }
 
 export function ErrorState({ message, onRetry }: { message: string; onRetry: () => void }) {
+  const t = useT();
   return (
     <View style={[styles.center, { gap: 12 }]} testID="error-state">
       <Message>{message}</Message>
-      <Button label="Try again" onPress={onRetry} />
+      <Button label={t('common.tryAgain')} onPress={onRetry} />
     </View>
   );
 }
@@ -193,8 +212,9 @@ export function Meter({ value, max, label, color = colors.lagoon }: { value: num
 }
 
 export function StarRow({ count, max = 3, size = 22 }: { count: number; max?: number; size?: number }) {
+  const t = useT();
   return (
-    <View style={{ flexDirection: 'row', gap: 2 }} accessible accessibilityLabel={`${count} of ${max} stars`}>
+    <View style={{ flexDirection: 'row', gap: 2 }} accessible accessibilityLabel={t('common.starsOf', { count, max })}>
       {Array.from({ length: max }, (_, i) => (
         <Svg key={i} width={size} height={size} viewBox="0 0 24 24">
           <Path
@@ -250,28 +270,56 @@ export function ConfirmDialog({
   onCancel: () => void;
   loading?: boolean;
 }) {
+  const t = useT();
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.backdrop}>
-        <View style={styles.dialog} accessibilityViewIsModal>
-          <H2>{title}</H2>
-          <Body muted>{body}</Body>
-          <View style={{ gap: 8, marginTop: 8 }}>
-            <Button label={confirmLabel} variant="danger" onPress={onConfirm} loading={loading} />
-            <Button label="Cancel" variant="secondary" onPress={onCancel} />
-          </View>
+        <View accessibilityViewIsModal style={styles.dialogWrap}>
+          <Glass strong style={styles.dialog}>
+            <H2>{title}</H2>
+            <Body muted>{body}</Body>
+            <View style={{ gap: 8, marginTop: 8 }}>
+              <Button label={confirmLabel} variant="danger" onPress={onConfirm} loading={loading} />
+              <Button label={t('common.cancel')} variant="secondary" onPress={onCancel} />
+            </View>
+          </Glass>
         </View>
       </View>
     </Modal>
   );
 }
 
+/** Language picker: one pill per language, each written in its own script. */
+export function LanguageSwitcher() {
+  const { locale, setLocale, t } = useLocale();
+  return (
+    <View accessibilityRole="radiogroup" accessibilityLabel={t('common.language')} style={{ flexDirection: 'row', gap: 6, flexWrap: 'wrap' }}>
+      {LOCALES.map((l) => {
+        const selected = l === locale;
+        return (
+          <Pressable
+            key={l}
+            accessibilityRole="radio"
+            accessibilityLabel={LOCALE_NAMES[l]}
+            accessibilityState={{ checked: selected }}
+            onPress={() => setLocale(l)}
+          >
+            <Glass tint={selected ? colors.lagoon : undefined} interactive style={styles.pill}>
+              <Text style={{ fontWeight: '800', color: selected ? '#fff' : colors.inkSoft }}>{LOCALE_NAMES[l]}</Text>
+            </Glass>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 export const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.chalk },
+  root: { flex: 1, backgroundColor: colors.chalk },
+  safe: { flex: 1, backgroundColor: 'transparent' },
   scroll: { paddingHorizontal: space(4), paddingVertical: space(4), paddingBottom: space(10) },
   column: { width: '100%', maxWidth: 720, alignSelf: 'center', gap: space(4) },
-  card: { borderRadius: radius.lg, padding: space(5), gap: space(2) },
-  cardShadow: { borderBottomWidth: 4, borderBottomColor: colors.line },
+  card: { borderRadius: radius.xl, padding: space(5), gap: space(2) },
   h1: { fontSize: 30, fontWeight: '900', letterSpacing: -0.3 },
   h2: { fontSize: 20, fontWeight: '800', color: colors.ink },
   body: { fontSize: 17, lineHeight: 25, color: colors.ink },
@@ -280,10 +328,10 @@ export const styles = StyleSheet.create({
   error: { fontSize: 14, fontWeight: '600', color: colors.emberDark },
   input: {
     minHeight: TOUCH,
-    borderWidth: 2,
-    borderColor: colors.line,
-    borderRadius: radius.sm,
-    backgroundColor: colors.paper,
+    borderWidth: 1.5,
+    borderColor: glass.rim,
+    borderRadius: radius.md,
+    backgroundColor: glass.fillStrong,
     paddingHorizontal: 14,
     fontSize: 17,
     color: colors.ink,
@@ -292,15 +340,16 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: radius.md,
-    borderWidth: 2,
-    paddingHorizontal: 20,
+    borderRadius: 999,
+    paddingHorizontal: 22,
   },
   buttonText: { fontWeight: '800' },
-  message: { borderRadius: radius.sm, padding: 14 },
+  pill: { minHeight: 40, paddingHorizontal: 14, borderRadius: 999, alignItems: 'center', justifyContent: 'center' },
+  message: { borderRadius: radius.md, padding: 14 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24 },
-  empty: { alignItems: 'center', gap: 10, padding: 24, borderRadius: radius.lg, borderWidth: 2, borderStyle: 'dashed', borderColor: colors.line },
-  meter: { height: 12, width: '100%', borderRadius: 999, backgroundColor: '#e5ebf4', overflow: 'hidden' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(28,37,65,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
-  dialog: { width: '100%', maxWidth: 420, backgroundColor: colors.paper, borderRadius: radius.lg, padding: 24, gap: 8 },
+  empty: { alignItems: 'center', gap: 10, padding: 24, borderRadius: radius.xl, borderWidth: 2, borderStyle: 'dashed', borderColor: glass.rim, backgroundColor: 'rgba(255,255,255,0.3)' },
+  meter: { height: 12, width: '100%', borderRadius: 999, backgroundColor: 'rgba(28,37,65,0.1)', overflow: 'hidden' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(28,37,65,0.3)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  dialogWrap: { width: '100%', maxWidth: 420 },
+  dialog: { borderRadius: radius.xl, padding: 24, gap: 8 },
 });

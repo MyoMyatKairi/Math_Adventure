@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { checkAnswer, createRng, hashSeed } from '../src';
-import { contentId, curriculum, evaluateTokens, validateQuestion } from '../src/content';
-import { GENERATORS } from '../src/math/generators';
+import { contentId, curriculum, evaluateTokens, validateQuestion, validateTranslations } from '../src/content';
+import { GENERATORS, type GeneratedQuestion } from '../src/math/generators';
 
 describe('rng', () => {
   it('is reproducible from a seed', () => {
@@ -57,12 +57,13 @@ describe('generators', () => {
   for (const [name, fn] of Object.entries(GENERATORS)) {
     it(`${name} always yields valid, self-consistent questions`, () => {
       for (let seed = 0; seed < 200; seed++) {
-        const q = (fn as (r: ReturnType<typeof createRng>, p: object) => Parameters<typeof validateQuestion>[0])(
+        const q = (fn as (r: ReturnType<typeof createRng>, p: object) => GeneratedQuestion)(
           createRng(seed),
           params[name] ?? {},
         );
         const draft = { ...q, difficulty: 1 as const, points: 10 };
         expect(validateQuestion(draft), `${name} seed ${seed}: ${JSON.stringify(q)}`).toEqual([]);
+        expect(validateTranslations(draft, q.i18n), `${name} seed ${seed}: ${JSON.stringify(q.i18n)}`).toEqual([]);
         expect(checkAnswer(draft, draft.answer.value).status).toBe('correct');
       }
     });

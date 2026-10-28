@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import type { Locale } from '../i18n/locales';
+import { isMessageKey, translate } from '../i18n/translate';
 import { ageGroupSchema } from './content';
 
 export const AVATAR_KEYS = ['fox', 'owl', 'panda', 'turtle', 'rocket', 'robot', 'whale', 'lion'] as const;
@@ -22,10 +24,10 @@ export function levelForAgeGroup(ageGroup: (typeof LEARNING_LEVELS)[number]['age
 export const displayNameSchema = z
   .string()
   .trim()
-  .min(1, 'Please enter a name.')
-  .max(30, 'Names can be up to 30 characters.')
+  .min(1, 'form.nameRequired')
+  .max(30, 'form.nameTooLong')
   // Letters (any script), spaces, apostrophes and hyphens only — a nickname, not a legal name.
-  .regex(/^[\p{L}\p{M}' -]+$/u, 'Use letters, spaces, apostrophes or hyphens.');
+  .regex(/^[\p{L}\p{M}' -]+$/u, 'form.nameChars');
 
 export const childProfileInputSchema = z.object({
   displayName: displayNameSchema,
@@ -35,24 +37,24 @@ export const childProfileInputSchema = z.object({
 });
 export type ChildProfileInput = z.infer<typeof childProfileInputSchema>;
 
-export const emailSchema = z.string().trim().toLowerCase().email('Please enter a valid email address.').max(254);
+export const emailSchema = z.string().trim().toLowerCase().email('form.emailInvalid').max(254);
 export const passwordSchema = z
   .string()
-  .min(8, 'Use at least 8 characters.')
-  .max(72, 'Use at most 72 characters.')
-  .regex(/[A-Za-z]/, 'Include at least one letter.')
-  .regex(/[0-9]/, 'Include at least one number.');
+  .min(8, 'form.passwordShort')
+  .max(72, 'form.passwordLong')
+  .regex(/[A-Za-z]/, 'form.passwordLetter')
+  .regex(/[0-9]/, 'form.passwordNumber');
 
 export const signUpSchema = z.object({
   displayName: displayNameSchema,
   email: emailSchema,
   password: passwordSchema,
 });
-export const signInSchema = z.object({ email: emailSchema, password: z.string().min(1, 'Please enter your password.') });
+export const signInSchema = z.object({ email: emailSchema, password: z.string().min(1, 'form.passwordRequired') });
 export const resetRequestSchema = z.object({ email: emailSchema });
 export const newPasswordSchema = z
   .object({ password: passwordSchema, confirm: z.string() })
-  .refine((v) => v.password === v.confirm, { message: 'Passwords do not match.', path: ['confirm'] });
+  .refine((v) => v.password === v.confirm, { message: 'form.passwordMismatch', path: ['confirm'] });
 
 /** Raw learner input sent to the server. Parsing happens in the math engine. */
 export const answerSubmissionSchema = z.object({
@@ -62,12 +64,16 @@ export const answerSubmissionSchema = z.object({
 });
 export type AnswerSubmission = z.infer<typeof answerSubmissionSchema>;
 
-/** Collects the first message per field, for form display. */
-export function fieldErrors(error: z.ZodError): Record<string, string> {
+/**
+ * Collects the first message per field, for form display. Schema messages are
+ * catalog keys (e.g. `form.nameRequired`); they are translated here, and any
+ * other Zod message falls back to a generic one.
+ */
+export function fieldErrors(error: z.ZodError, locale: Locale = 'en'): Record<string, string> {
   const out: Record<string, string> = {};
   for (const issue of error.issues) {
     const key = issue.path.join('.') || 'form';
-    if (!out[key]) out[key] = issue.message;
+    if (!out[key]) out[key] = translate(locale, isMessageKey(issue.message) ? issue.message : 'form.invalid');
   }
   return out;
 }

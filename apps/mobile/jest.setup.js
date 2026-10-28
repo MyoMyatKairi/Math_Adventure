@@ -14,3 +14,9 @@ jest.mock('react-native-reanimated', () => {
   const anim = { springify: () => anim, duration: () => anim, delay: () => anim };
   return { __esModule: true, default: { View }, ZoomIn: anim, FadeInDown: anim };
 });
+
+// Liquid Glass is native-only (iOS 26+); tests render the frosted fallback.
+jest.mock('expo-glass-effect', () => {
+  const { View } = require('react-native');
+  return { GlassView: View, GlassContainer: View, isLiquidGlassAvailable: () => false, isGlassEffectAPIAvailable: () => false };
+});

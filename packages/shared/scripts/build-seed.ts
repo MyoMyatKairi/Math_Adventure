@@ -36,45 +36,45 @@ begin;
 
 sql += upsert(
   'badges',
-  ['key', 'title', 'description', 'icon_key', 'unlock_rule', 'display_order', 'is_active'],
-  BADGES.map((b, i) => [q(b.key), q(b.title), q(b.description), q(b.iconKey), j(b.rule), String(i + 1), 'true']),
+  ['key', 'title', 'description', 'icon_key', 'unlock_rule', 'display_order', 'is_active', 'translations'],
+  BADGES.map((b, i) => [q(b.key), q(b.title), q(b.description), q(b.iconKey), j(b.rule), String(i + 1), 'true', j(b.translations)]),
   'key',
 );
 
 sql += upsert(
   'worlds',
-  ['id', 'learning_level_id', 'title', 'description', 'theme_key', 'display_order', 'is_published'],
-  c.worlds.map((w) => [q(w.id), q(w.levelId), q(w.title), q(w.description), q(w.themeKey), String(w.displayOrder), 'true']),
+  ['id', 'learning_level_id', 'title', 'description', 'theme_key', 'display_order', 'is_published', 'translations'],
+  c.worlds.map((w) => [q(w.id), q(w.levelId), q(w.title), q(w.description), q(w.themeKey), String(w.displayOrder), 'true', j(w.translations)]),
 );
 
 sql += upsert(
   'topics',
-  ['id', 'learning_level_id', 'title', 'description', 'display_order', 'is_published'],
-  c.topics.map((t) => [q(t.id), q(t.levelId), q(t.title), q(t.description), String(t.displayOrder), 'true']),
+  ['id', 'learning_level_id', 'title', 'description', 'display_order', 'is_published', 'translations'],
+  c.topics.map((t) => [q(t.id), q(t.levelId), q(t.title), q(t.description), String(t.displayOrder), 'true', j(t.translations)]),
 );
 
 sql += upsert(
   'lessons',
-  ['id', 'world_id', 'topic_id', 'title', 'description', 'learning_objective', 'difficulty', 'estimated_minutes', 'display_order', 'is_published'],
+  ['id', 'world_id', 'topic_id', 'title', 'description', 'learning_objective', 'difficulty', 'estimated_minutes', 'display_order', 'is_published', 'translations'],
   c.lessons.map((l) => [
     q(l.id), q(l.worldId), q(l.topicId), q(l.title), q(l.description), q(l.objective),
-    String(l.difficulty), String(l.minutes), String(l.displayOrder), 'true',
+    String(l.difficulty), String(l.minutes), String(l.displayOrder), 'true', j(l.translations),
   ]),
 );
 
 sql += upsert(
   'lesson_sections',
-  ['id', 'lesson_id', 'section_type', 'title', 'content_json', 'display_order'],
-  c.lessons.flatMap((l) => l.sections.map((s) => [q(s.id), q(l.id), q(s.type), q(s.title), j(s.content), String(s.displayOrder)])),
+  ['id', 'lesson_id', 'section_type', 'title', 'content_json', 'display_order', 'translations'],
+  c.lessons.flatMap((l) => l.sections.map((s) => [q(s.id), q(l.id), q(s.type), q(s.title), j(s.content), String(s.displayOrder), j(s.translations)])),
 );
 
 sql += upsert(
   'questions',
-  ['id', 'lesson_id', 'question_type', 'prompt', 'visual_data', 'answer_data', 'options', 'explanation', 'hint', 'difficulty', 'points', 'display_order', 'is_published'],
+  ['id', 'lesson_id', 'question_type', 'prompt', 'visual_data', 'answer_data', 'options', 'explanation', 'hint', 'difficulty', 'points', 'display_order', 'is_published', 'translations'],
   c.lessons.flatMap((l) =>
     l.questions.map((x) => [
       q(x.id), q(l.id), q(x.type), q(x.prompt), j(x.visual), j(x.answer), j(x.options), q(x.explanation), q(x.hint),
-      String(x.difficulty), String(x.points), String(x.displayOrder), 'true',
+      String(x.difficulty), String(x.points), String(x.displayOrder), 'true', j(x.translations),
     ]),
   ),
 );

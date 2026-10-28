@@ -6,6 +6,7 @@ jest.mock('../src/lib/supabase', () => require('../test-utils/supabase-mock'));
 
 const Q1 = '00000000-0000-4000-8000-000000000001';
 const Q2 = '00000000-0000-4000-8000-000000000002';
+const STREAK = { current: 4, longest: 4, freezes: 0, practicedToday: true, week: [], extended: true, freezesUsed: 0, freezeEarned: false };
 
 function setup() {
   tableData.lesson_sections = [
@@ -39,7 +40,7 @@ function setup() {
     return { data: { status: 'answered', isCorrect: true, attemptNumber: 1, triesRemaining: 0, resolved: true, pointsAwarded: 10, hint: null, explanation: '2 is less than 5.', correctAnswer: '<' }, error: null };
   };
   rpcHandlers.complete_lesson = () => ({
-    data: { attemptId: 'att', lessonId: 'l', score: 75, totalQuestions: 2, correctAnswers: 1, stars: 2, bestStars: 2, xpAwarded: 30, starsAwarded: 2, isDailyChallenge: false, dailyBonusXp: 0, newBadges: [{ key: 'first-steps', title: 'First Steps', description: 'Finished your first lesson.', iconKey: 'footprints' }], unlockedWorlds: [], alreadyCompleted: false },
+    data: { attemptId: 'att', lessonId: 'l', score: 75, totalQuestions: 2, correctAnswers: 1, stars: 2, bestStars: 2, xpAwarded: 30, starsAwarded: 2, isDailyChallenge: false, dailyBonusXp: 0, newBadges: [{ key: 'first-steps', title: 'First Steps', description: 'Finished your first lesson.', iconKey: 'footprints' }], unlockedWorlds: [], alreadyCompleted: false, kind: 'lesson', streak: STREAK, dailyGoal: { target: 2, done: 1 } },
     error: null,
   });
 }
@@ -78,6 +79,44 @@ describe('LessonPlayer (mobile)', () => {
     expect(await screen.findByText('Great job!')).toBeTruthy();
     expect(screen.getByText('+30')).toBeTruthy();
     expect(screen.getByText('New badge: First Steps. Finished your first lesson.')).toBeTruthy();
+    expect(screen.getByText('4-day streak!')).toBeTruthy();
+  });
+
+  it('builds a combo from first-try answers', async () => {
+    rpcHandlers.submit_answer = () => ({ data: { status: 'answered', isCorrect: true, attemptNumber: 1, triesRemaining: 0, resolved: true, pointsAwarded: 10, hint: null, explanation: null, correctAnswer: '7' }, error: null });
+    await render(<LessonPlayer childId="c" lessonId="l" ageGroup="8-10" isDaily={false} onExit={() => {}} />);
+    await screen.findByText('Adding means putting groups together.');
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Start practice' })));
+    await fireEvent.changeText(await screen.findByLabelText('Your answer'), '7');
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Check answer' })));
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Next question' })));
+    await fireEvent.press(await screen.findByRole('radio', { name: 'is less than' }));
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Check answer' })));
+    expect(await screen.findByText('2 in a row!')).toBeTruthy();
+  });
+
+  it('plays a practice round without a lesson', async () => {
+    const start = rpcHandlers.start_lesson!;
+    rpcHandlers.start_review = (args) => {
+      expect(args).toEqual({ p_child_id: 'c', p_locale: 'en' });
+      return { data: { ...((start({}) as { data: object }).data), kind: 'review' }, error: null };
+    };
+    rpcHandlers.start_lesson = () => { throw new Error('practice must not start a lesson'); };
+    rpcHandlers.submit_answer = () => ({ data: { status: 'answered', isCorrect: true, attemptNumber: 1, triesRemaining: 0, resolved: true, pointsAwarded: 10, hint: null, explanation: null, correctAnswer: '7' }, error: null });
+    const done = rpcHandlers.complete_lesson!;
+    rpcHandlers.complete_lesson = () => ({ data: { ...((done({}) as { data: object }).data), kind: 'review', lessonId: null, xpAwarded: 0, starsAwarded: 0, newBadges: [] }, error: null });
+
+    await render(<LessonPlayer mode="review" mistakes={3} childId="c" ageGroup="8-10" isDaily={false} onExit={() => {}} />);
+    expect(screen.getByText('Fix 3 tricky questions from earlier.')).toBeTruthy();
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Start practice' })));
+    await fireEvent.changeText(await screen.findByLabelText('Your answer'), '7');
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Check answer' })));
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Next question' })));
+    await fireEvent.press(await screen.findByRole('radio', { name: 'is less than' }));
+    await act(async () => fireEvent.press(screen.getByRole('button', { name: 'Check answer' })));
+    await act(async () => fireEvent.press(await screen.findByRole('button', { name: 'Continue' })));
+    expect(await screen.findByText('Practice done!')).toBeTruthy();
+    expect(screen.queryByText('XP earned')).toBeNull();
   });
 
   it('shows a friendly error when the lesson cannot start', async () => {

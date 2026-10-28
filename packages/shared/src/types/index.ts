@@ -61,9 +61,34 @@ export type SubmitAnswerResult =
       correctAnswer: string | null;
     };
 
+/** Returned by `start_review`: a practice round of earlier mistakes, with no lesson. */
+export interface StartReviewResult {
+  attemptId: string;
+  resumed: boolean;
+  kind: 'review';
+  questions: import('../schemas/content').PublicQuestion[];
+  progress: QuestionProgress[];
+}
+
+export interface StreakInfo {
+  current: number;
+  longest: number;
+  freezes: number;
+  practicedToday: boolean;
+  /** The last 7 UTC days, oldest first. */
+  week: { date: string; active: boolean }[];
+}
+
+export interface DailyGoalInfo {
+  target: number;
+  done: number;
+}
+
 export interface CompleteLessonResult {
   attemptId: string;
-  lessonId: string;
+  kind: 'lesson' | 'review';
+  /** Null for practice rounds. */
+  lessonId: string | null;
   score: number;
   totalQuestions: number;
   correctAnswers: number;
@@ -76,4 +101,6 @@ export interface CompleteLessonResult {
   newBadges: { key: string; title: string; description: string; iconKey: string }[];
   unlockedWorlds: { id: string; title: string }[];
   alreadyCompleted: boolean;
+  streak: StreakInfo & { extended: boolean; freezesUsed: number; freezeEarned: boolean };
+  dailyGoal: DailyGoalInfo;
 }

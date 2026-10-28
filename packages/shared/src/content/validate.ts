@@ -1,4 +1,6 @@
+import { TRANSLATED_LOCALES, type TranslatedLocale } from '../i18n/locales';
 import { checkAnswer } from '../math/answers';
+import type { QuestionText } from '../math/generators';
 import { compareRationals, parseExact, rationalEquals, type Rational } from '../math/number';
 import { questionDraftSchema, sectionContentSchema, type QuestionDraft, type VisualData } from '../schemas/content';
 
@@ -137,6 +139,39 @@ export function validateQuestion(q: QuestionDraft): string[] {
   }
   if (type === 'compare' && !explanation.includes(` ${answer.value} `)) {
     problems.push('explanation does not show the comparison sign');
+  }
+  return problems;
+}
+
+/** The question as a learner sees it in `locale`: translated text, translated word labels. */
+export function localizeQuestion(q: QuestionDraft, text: QuestionText): QuestionDraft {
+  return {
+    ...q,
+    prompt: text.prompt,
+    explanation: text.explanation,
+    ...(q.hint !== undefined ? { hint: text.hint } : {}),
+    ...(q.options ? { options: q.options.map((o) => ({ ...o, label: text.options?.[o.id] ?? o.label })) } : {}),
+  };
+}
+
+/**
+ * Checks every translation of a question with the same rules as the English:
+ * the translated explanation must still state the answer, word options must be
+ * translated, and a hint must exist when the English has one.
+ */
+export function validateTranslations(q: QuestionDraft, translations: Partial<Record<TranslatedLocale, QuestionText>> | undefined): string[] {
+  const problems: string[] = [];
+  for (const locale of TRANSLATED_LOCALES) {
+    const text = translations?.[locale];
+    if (!text) {
+      problems.push(`${locale}: missing translation`);
+      continue;
+    }
+    if (q.hint !== undefined && !text.hint) problems.push(`${locale}: missing hint`);
+    // Numbers, signs and algebra like "4n + 3" read the same in every language; words do not.
+    const words = q.options?.filter((o) => !/^[\d\s.,:/<>=+−×÷nx-]+$/.test(o.label)) ?? [];
+    for (const o of words) if (!text.options?.[o.id]) problems.push(`${locale}: option ${o.id} ("${o.label}") is not translated`);
+    for (const p of validateQuestion(localizeQuestion(q, text))) problems.push(`${locale}: ${p}`);
   }
   return problems;
 }
