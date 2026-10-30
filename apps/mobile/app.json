@@ -6,9 +6,30 @@
     "version": "0.1.0",
     "orientation": "default",
     "userInterfaceStyle": "light",
-    "ios": { "supportsTablet": true, "bundleIdentifier": "com.mathadventure.app" },
-    "android": { "package": "com.mathadventure.app" },
-    "plugins": ["expo-router", "expo-secure-store"],
-    "experiments": { "typedRoutes": false }
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mathadventure.app"
+    },
+    "android": {
+      "package": "com.mathadventure.app"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "9a35aa0f-7ce5-4964-89ff-2a8121bd03ed"
+      }
+    },
+    "owner": "kairi31myomyat"
   }
 }

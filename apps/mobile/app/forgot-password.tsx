@@ -5,6 +5,8 @@ import { Body, Button, Field, H1, Message, Screen } from '../src/components/ui';
 import { useLocale } from '../src/lib/i18n';
 import { supabase } from '../src/lib/supabase';
 
+// TODO: EXPO_PUBLIC_SITE_URL is not set on EAS yet, so reset links in device builds point to localhost
+// and won't open. Once the web app is deployed, set it via `eas env:create` and add the URL to Supabase Auth redirect URLs.
 const WEB_URL = process.env.EXPO_PUBLIC_SITE_URL ?? 'http://localhost:3003';
 
 export default function ForgotPassword() {
