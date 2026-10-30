@@ -17,7 +17,7 @@ supabase start -x studio,postgres-meta,logflare,vector,imgproxy,edge-runtime,rea
 supabase status                    # copy the API URL and the publishable/anon key
 cp .env.example apps/web/.env.local   # fill in the web values
 openssl rand -hex 32               # use as PARENT_GATE_SECRET
-pnpm dev:web                       # http://localhost:3000
+pnpm dev:web                       # http://localhost:3003
 ```
 
 Local auth auto-confirms emails. Password reset emails appear in Mailpit at http://127.0.0.1:54324.

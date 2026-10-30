@@ -18,7 +18,7 @@ pnpm install
 pnpm content:build
 supabase start
 cp .env.example apps/web/.env.local     # fill in values from `supabase status`
-pnpm dev:web                            # http://localhost:3000
+pnpm dev:web                            # http://localhost:3003
 ```
 
 Full instructions, mobile setup, deployment (Supabase, Vercel, EAS) and troubleshooting: **[docs/setup.md](docs/setup.md)**.
